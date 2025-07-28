@@ -1,0 +1,38 @@
+# <type>: <description>
+#
+# Type must be one of the following:
+#   feat:     A new feature
+#   fix:      A bug fix
+#   docs:     Documentation only changes
+#   style:    Changes that do not affect the meaning of the code
+#   refactor: A code change that neither fixes a bug nor adds a feature
+#   perf:     A code change that improves performance
+#   test:     Adding missing tests or correcting existing tests
+#   chore:    Changes to the build process or auxiliary tools
+#
+# Description should be:
+#   - Written in imperative mood ("add feature" not "added feature")
+#   - Start with lowercase letter
+#   - No dot (.) at the end
+#   - Maximum 50 characters for the first line
+#
+# Examples:
+#   feat: add user authentication system
+#   
+#   - Implement JWT token validation
+#   - Add login/logout components
+#   - Update user session management
+#   
+#   Closes #123
+#   
+#   fix: resolve memory leak in component cleanup
+#   
+#   Fixes issue with event listeners not being removed
+#   
+#   Closes #456
+#   
+#   docs: update installation instructions
+#   
+#   Add issue-driven development workflow
+#   
+#   Closes #789

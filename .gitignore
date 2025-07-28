@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+
+# Node modules
+node_modules/
+
+# Output directories
+output/
+
+# Environment and shell
+.env
+.env.*
+env.sh
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Old or sample files
+old/
+sample/
+
+# Miscellaneous
+.idea/
+*.swp
+
+# Requirements
+requirements/*.txt
