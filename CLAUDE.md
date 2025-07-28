@@ -1,7 +1,7 @@
 # Keywords Cluster Topic Tool
 
 A CLI tool for keyword clustering and topic analysis using K-means clustering and natural language processing.
-
+this project use javascript , typescript is not allowed
 ## Quick Start
 
 ```bash
@@ -14,6 +14,8 @@ npm start
 # Run tests
 npm test
 ```
+## git workflow
+for implement task on github issue, please follow `git-workflow.md`
 
 ## Frequent Commands
 
@@ -34,10 +36,6 @@ npm test
 - `PRODUCT_REQUIREMENTS.md` - Product specifications
 - `DATABASE_SCHEMA_REQUIREMENTS.md` - Database schema details
 - `USER_STORIES.md` - User stories and requirements
-- `requirements/` - Additional requirement documents
-- `cli/index-new.js` - Main CLI entry point
-- `src/services/keyword-service.js` - Core keyword processing logic
-- `test/keyword-service.test.js` - Unit tests
 
 ## Dependencies
 

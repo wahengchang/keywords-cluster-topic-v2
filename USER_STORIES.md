@@ -19,7 +19,7 @@
 - ✅ Project is saved to SQLite database
 - ✅ I can add optional tags and configuration
 
-**CLI Command:** `kwt project create "My Domain" --domain example.com`
+**Interactive Flow:** Launch CLI, select "Create Project", choose "Domain", enter domain name and configuration options through prompts
 
 ---
 
@@ -32,7 +32,7 @@
 - ✅ Project is saved with subfolder type
 - ✅ I can configure processing options
 
-**CLI Command:** `kwt project create "Blog Analysis" --url https://example.com/blog/`
+**Interactive Flow:** Launch CLI, select "Create Project", choose "Subfolder", enter URL and configuration options through prompts
 
 ---
 
@@ -45,7 +45,7 @@
 - ✅ Support filtering by type or status
 - ✅ Display in readable table format
 
-**CLI Command:** `kwt project list`
+**Interactive Flow:** Launch CLI, select "List Projects", optionally choose filters through prompts
 
 ---
 
@@ -58,7 +58,7 @@
 - ✅ Don't copy historical processing data
 - ✅ New project ready for fresh processing
 
-**CLI Command:** `kwt project duplicate "My Domain" "My Domain v2"`
+**Interactive Flow:** Launch CLI, select "Duplicate Project", choose source project from list, enter new project name through prompts
 
 ---
 
@@ -74,7 +74,7 @@
 - ✅ Save results with current date
 - ✅ Show progress updates during processing
 
-**CLI Command:** `kwt process create "My Domain" --wait --progress`
+**Interactive Flow:** Launch CLI, select "Process Project", choose "Initial Processing", select project from list, confirm processing options
 
 **Processing Stages:**
 1. SEMrush data acquisition
@@ -98,7 +98,7 @@
 - ✅ Generate new titles avoiding duplicates
 - ✅ Update project last_processed timestamp
 
-**CLI Command:** `kwt process rescrape "My Domain" --progress`
+**Interactive Flow:** Launch CLI, select "Process Project", choose "Update Data (Rescrape)", select project from list, confirm processing
 
 ---
 
@@ -112,4 +112,4 @@
 - ✅ Allow configurable titles per cluster
 - ✅ Fast execution (no SEMrush API calls)
 
-**CLI Command:** `kwt process writemore "My Domain" --titles-per-cluster 5`
+**Interactive Flow:** Launch CLI, select "Process Project", choose "Generate More Content", select project from list, configure titles per cluster through prompts
