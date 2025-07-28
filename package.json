@@ -7,7 +7,8 @@
   },
   "scripts": {
     "start": "node cli/index-new.js",
-    "test": "jest"
+    "test": "jest",
+    "init-db": "node scripts/init-db.js"
   },
   "author": "",
   "license": "ISC",
