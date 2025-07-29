@@ -11,28 +11,39 @@
 ## Epic 1: Project Management 🗂️
 
 ### US-001: Create Domain Project
-**As a user, I want to create a domain-level project so that I can analyze all keywords for an entire domain.**
+**As a user, I want to create a domain-level project so that I can analyze all keywords for an entire domain with full automation.**
 
 **Acceptance Criteria:**
 - ✅ I can specify a domain name (e.g., "example.com")
-- ✅ System creates project with unique slug
-- ✅ Project is saved to SQLite database
-- ✅ I can add optional tags and configuration
+- ✅ System checks if domain already exists in database
+- ✅ If domain exists, operation exits with warning message
+- ✅ If domain doesn't exist, system creates project with unique slug
+- ✅ System automatically downloads SEMrush data
+- ✅ Data is inserted to database one by one during download
+- ✅ Complete processing pipeline runs automatically
+- ✅ FAQ titles are generated for limited clusters (cost optimization)
+- ✅ System skips FAQ generation for clusters that already have titles
 
-**Interactive Flow:** Launch CLI, select "Create Project", choose "Domain", enter domain name and configuration options through prompts
+**Interactive Flow:** Launch CLI, select "Create Project", choose "Domain/Subfolder", enter domain name → automatic domain check → automatic SEMrush download → automatic pipeline processing → automatic FAQ generation
 
 ---
 
 ### US-002: Create Subfolder Project
-**As a user, I want to create a subfolder project so that I can analyze keywords for specific URL paths.**
+**As a user, I want to create a subfolder project so that I can analyze keywords for specific URL paths with full automation.**
 
 **Acceptance Criteria:**
 - ✅ I can specify a full URL path (e.g., "https://example.com/blog/")
 - ✅ System validates URL format
-- ✅ Project is saved with subfolder type
-- ✅ I can configure processing options
+- ✅ System checks if URL path already exists in database
+- ✅ If URL exists, operation exits with warning message
+- ✅ If URL doesn't exist, system creates project with subfolder type
+- ✅ System automatically downloads SEMrush data
+- ✅ Data is inserted to database one by one during download
+- ✅ Complete processing pipeline runs automatically
+- ✅ FAQ titles are generated for limited clusters (cost optimization)
+- ✅ System skips FAQ generation for clusters that already have titles
 
-**Interactive Flow:** Launch CLI, select "Create Project", choose "Subfolder", enter URL and configuration options through prompts
+**Interactive Flow:** Launch CLI, select "Create Project", choose "Domain/Subfolder", enter URL → automatic URL check → automatic SEMrush download → automatic pipeline processing → automatic FAQ generation
 
 ---
 
@@ -88,16 +99,21 @@
 ---
 
 ### US-006: Update Project Data (RESCRAPE)
-**As a user, I want to update existing projects with fresh data so that my analysis stays current.**
+**As a user, I want to update existing projects with fresh data so that my analysis stays current with full automation.**
 
 **Acceptance Criteria:**
-- ✅ Fetch new SEMrush data for project
-- ✅ Process through pipeline with new date tag
-- ✅ Keep historical data for comparison
-- ✅ Generate new titles avoiding duplicates
+- ✅ I can select from existing project domains/subfolders
+- ✅ System downloads fresh SEMrush data for selected project
+- ✅ System checks if data already exists for current date
+- ✅ If data exists, system updates it with createdAt/updatedAt timestamps
+- ✅ If data doesn't exist, system inserts new data
+- ✅ Complete processing pipeline runs automatically on new/updated data
+- ✅ FAQ titles are generated for limited clusters (cost optimization)
+- ✅ System skips FAQ generation for clusters that already have titles
+- ✅ Keep historical data for comparison across dates
 - ✅ Update project last_processed timestamp
 
-**Interactive Flow:** Launch CLI, select "Process Project", choose "Update Data (Rescrape)", select project from list, confirm processing
+**Interactive Flow:** Launch CLI, select "Rescrape", choose existing project domain/subfolder → automatic data download → automatic data check/update → automatic pipeline processing → automatic FAQ generation
 
 ---
 

@@ -53,14 +53,19 @@ The current system is a Node.js CLI application with the following characteristi
 3. **Deduplication**: Remove duplicate keywords
 4. **Keyword Clustering**: Semantic grouping using K-means
 5. **Prioritization**: Score and rank keywords
-6. **Title Generation**: AI-powered content title creation
+6. **Title Generation**: AI-powered content title creation with cost optimization
 7. **Summary Generation**: Processing statistics and metrics
 
+**Title Generation Cost Optimization:**
+- Generate FAQ titles only for limited number of clusters to control AI API costs
+- Skip title generation for clusters that already have existing titles in database
+- Smart cluster selection based on keyword volume and priority scores
+
 #### 2.2.2 Core Operations
-- **CREATE**: Initialize new keyword analysis projects
+- **CREATE**: Initialize new keyword analysis projects with full automation (domain check → SEMrush download → pipeline → FAQ generation)
+- **RESCRAPE**: Update existing projects with fresh data and full automation (data check/update → pipeline → FAQ generation)
 - **ANALYZE**: Cross-project data analysis and reporting
-- **RESCRAPE**: Update existing projects with fresh data
-- **WRITEMORE**: Generate additional content from existing data
+- **WRITEMORE**: Generate additional content from existing data (deprecated in favor of integrated FAQ generation)
 
 ---
 
@@ -88,11 +93,12 @@ As a user, I want to duplicate existing projects so that I can reuse configurati
 
 #### 3.3.2 Data Processing
 ```
-As a user, I want to process keywords through the full pipeline so that I get comprehensive analysis
-As a user, I want to manually run rescrape operations so that I can collect fresh data when needed
+As a user, I want to create new projects with automatic pipeline processing so that I get complete analysis without manual steps
+As a user, I want to rescrape existing projects with automatic pipeline processing so that I can update data seamlessly
+As a user, I want domain/URL validation to prevent duplicate projects so that I maintain clean data
+As a user, I want automatic FAQ title generation with cost optimization so that I get content without overspending
+As a user, I want smart data updates during rescrape so that historical data is preserved
 As a user, I want to compare data between different collection dates so that I can identify changes
-As a user, I want to update existing projects with fresh data so that my analysis stays current
-As a user, I want to generate additional content titles so that I can scale my content strategy
 As a user, I want to analyze multiple projects together so that I can identify trends
 ```
 
@@ -111,8 +117,10 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 
 #### 4.1.1 Project Lifecycle
 - **Project Creation**: Initialize projects with domain or URL path (subfolder) configuration
+- **Duplicate Prevention**: Check existing projects before creation to prevent duplicates
 - **Project Types**: Support both domain-level and subfolder-level projects
-- **Manual Data Collection**: User-triggered rescrape operations for fresh data
+- **Automated Data Collection**: Automatic SEMrush data download and database insertion during creation
+- **Rescrape Operations**: User-triggered rescrape with smart data update/insert logic
 - **Project Configuration**: Settings for clustering, title generation, and processing options
 - **Project Duplication**: Clone existing projects with all configurations
 - **Project Archival**: Archive completed or obsolete projects
@@ -129,11 +137,14 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 
 #### 4.2.1 Core Processing Pipeline
 - **Modular Architecture**: Maintain existing 8-stage pipeline structure
-- **Manual Processing**: User-initiated processing runs (create, rescrape, writemore)
+- **Automated Processing**: Full pipeline automation for create and rescrape operations
+- **User-initiated Operations**: Two main workflows (create, rescrape) with automatic pipeline execution
 - **Date-based Runs**: Each processing run tagged with collection date
 - **Progress Tracking**: Real-time progress updates for all operations
 - **Error Handling**: Comprehensive error recovery and retry mechanisms
 - **Processing History**: Complete audit trail of all processing steps with date tracking
+- **Domain/URL Validation**: Check for existing projects before creation
+- **Data Update Logic**: Smart update vs insert logic for rescrape operations
 
 #### 4.2.2 Data Storage & Management
 - **SQLite Database**: Local SQLite database for simple data storage
