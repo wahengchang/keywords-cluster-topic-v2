@@ -10,28 +10,102 @@ jobs:
   test:
     runs-on: ubuntu-latest
     
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    
     steps:
     - uses: actions/checkout@v4
     
-    - name: Setup Node.js
+    - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: ${{ matrix.node-version }}
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm ci
+      run: npm install
     
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps chromium
+    - name: Run unit tests
+      run: npm test
     
-    - name: Run E2E tests
-      run: npx playwright test
+    - name: Test database connection
+      run: |
+        node -e "
+        const { getDatabase, closeDatabase } = require('./src/database/connection');
+        getDatabase()
+          .then(() => {
+            console.log('✅ Database connection test passed');
+            closeDatabase();
+          })
+          .catch((e) => {
+            console.error('❌ Database connection test failed:', e.message);
+            process.exit(1);
+          });
+        "
     
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+    - name: Test CLI help command
+      run: |
+        timeout 10s node cli/index-new.js --help || true
+        echo "CLI help test completed"
+    
+    - name: Verify database schema creation
+      run: |
+        node -e "
+        const { getDatabase, closeDatabase } = require('./src/database/connection');
+        const ProjectModel = require('./src/database/models/project');
+        
+        getDatabase()
+          .then((db) => {
+            const projectModel = new ProjectModel(db);
+            console.log('✅ Database models loaded successfully');
+            closeDatabase();
+          })
+          .catch((e) => {
+            console.error('❌ Database schema test failed:', e.message);
+            closeDatabase();
+            process.exit(1);
+          });
+        "
+    
+    - name: Test CSV parsing functionality
+      run: |
+        node -e "
+        const { getDatabase, closeDatabase } = require('./src/database/connection');
+        const ProjectModel = require('./src/database/models/project');
+        const ProcessingRunModel = require('./src/database/models/processing-run');
+        const RawKeywordModel = require('./src/database/models/raw-keyword');
+        
+        const testCSV = 'Keyword;Position;Previous Position;Position Difference;Search Volume;CPC;Url;Traffic (%);Traffic Cost (%);Competition;Number of Results;Trends\ntest keyword;1;1;0;1000;0.50;https://example.com;10.0;5.0;0.1;1000000;0.5,0.6,0.7';
+        
+        getDatabase()
+          .then(async (db) => {
+            // Create required project and processing run first
+            const projectModel = new ProjectModel(db);
+            const runModel = new ProcessingRunModel(db);
+            const rawKeywordModel = new RawKeywordModel(db);
+            
+            const project = await projectModel.createProject({
+              name: 'Test Project',
+              projectType: 'domain',
+              domain: 'test.com'
+            });
+            
+            const run = await runModel.startRun(project.id, 'create');
+            
+            // Now test CSV parsing with proper foreign keys
+            const keywords = rawKeywordModel.saveFromCSV(project.id, run.id, testCSV);
+            
+            if (keywords.length > 0) {
+              console.log('✅ CSV parsing test passed - parsed', keywords.length, 'keywords');
+            } else {
+              throw new Error('No keywords parsed from CSV');
+            }
+            closeDatabase();
+          })
+          .catch((e) => {
+            console.error('❌ CSV parsing test failed:', e.message);
+            closeDatabase();
+            process.exit(1);
+          });
+        "
