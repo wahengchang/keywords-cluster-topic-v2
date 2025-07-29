@@ -6,11 +6,13 @@ const RawKeywordModel = require('../../src/database/models/raw-keyword');
 const KeywordModel = require('../../src/database/models/keyword');
 const DataCleaningService = require('../../src/services/data-cleaning-service');
 const DeduplicationService = require('../../src/services/deduplication-service');
+const ProcessingService = require('../../src/services/processing-service');
 
 class ProcessCommand {
   constructor() {
     this.cleaner = new DataCleaningService();
     this.deduper = new DeduplicationService();
+    this.pipeline = new ProcessingService();
   }
 
   async execute() {
@@ -45,16 +47,23 @@ class ProcessCommand {
         return;
       }
       let cleaned = rawKeywords;
-      if (action.action === 'clean' || action.action === 'full') {
+      if (action.action === 'clean') {
         Output.showProgress('Cleaning keywords');
         cleaned = await this.cleaner.cleanKeywords(rawKeywords, {});
         cleaned.forEach(k => keywordModel.createFromRaw(k, { cleaned_keyword: k.cleaned_keyword }));
       }
-      if (action.action === 'dedupe' || action.action === 'full') {
+      if (action.action === 'dedupe') {
         Output.showProgress('Deduplicating keywords');
         const result = await this.deduper.deduplicateKeywords(cleaned);
         Output.showInfo(`Unique keywords: ${result.unique.length}`);
         Output.showInfo(`Similar groups: ${result.similarGroups.length}`);
+      }
+
+      if (action.action === 'full') {
+        Output.showProgress('Running full pipeline');
+        const result = await this.pipeline.run(rawKeywords, { clustering: { clusterCount: 3 } });
+        Output.showInfo(`Clusters created: ${result.clusters.length}`);
+        Output.showInfo(`Keywords scored: ${result.keywords.length}`);
       }
     } finally {
       closeDatabase();
