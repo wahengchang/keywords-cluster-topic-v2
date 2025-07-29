@@ -141,8 +141,7 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 - **Time-based Storage**: Store multiple datasets per project with collection dates
 - **Data Versioning**: Track changes and maintain historical versions by date
 - **Historical Analysis**: Compare data across different collection dates
-- **Data Export**: Multiple export formats (CSV, JSON, Excel) with date filtering
-- **Data Import**: Migrate existing file-based projects with date preservation
+- **Automatic Migration**: Seamless API → CSV → Database flow without user intervention
 
 #### 4.2.3 External API Management
 - **Environment Variables**: API keys stored in environment variables
@@ -158,7 +157,6 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 - **Content Performance**: Title generation success rates and quality
 - **Trend Analysis**: Track keyword performance changes over time
 - **Historical Comparison**: Compare data between different collection dates
-- **Export Capabilities**: Comprehensive data export options with date range selection
 
 #### 4.3.2 Multi-Project Analysis
 - **Cross-Project Insights**: Compare keywords and topics across projects
@@ -178,9 +176,9 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 
 #### 4.4.2 Command Line Interface (Phase 1)
 - **Project Commands**: All core operations available via CLI
-- **Configuration Management**: CLI-based settings and preferences
-- **Batch Operations**: Support for bulk operations and scripting
-- **Output Formatting**: Flexible output formats for integration
+- **Database Management**: View project status and listings
+- **Automatic Processing**: Seamless API → CSV → Database workflow
+- **Interactive Prompts**: User-friendly CLI interface with guided workflows
 
 #### 4.4.3 Simple REST API (Future Phase)
 - **Resource Management**: Basic CRUD operations for projects and data
@@ -219,7 +217,7 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 - **SQLite ACID**: Built-in data consistency with SQLite transactions
 - **Validation**: Input validation and data integrity checks
 - **Error Handling**: Comprehensive error recovery mechanisms
-- **Backup**: Simple database backup capabilities
+- **Automatic Storage**: Seamless data persistence without manual intervention
 
 ### 5.4 API Key Management
 
@@ -234,7 +232,7 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 - **Simple Interface**: Clean, intuitive interface for personal use
 - **Error Messages**: Clear, actionable error messages and guidance
 - **Help Documentation**: Basic user guides and CLI help
-- **Migration Support**: Tools for migrating from old file-based system
+- **Automatic Workflow**: Streamlined API → CSV → Database process without manual steps
 
 ---
 
@@ -374,7 +372,7 @@ CREATE TABLE generated_content (
 ### 6.3 Technology Stack
 
 #### 6.3.1 Backend Technologies
-- **Runtime**: Node.js 18+ with TypeScript
+- **Runtime**: Node.js 18+ with javascript
 - **Framework**: Express.js for web interface (future phase)
 - **Database**: SQLite with better-sqlite3 driver
 - **Processing**: Direct sequential processing without queues
@@ -382,7 +380,7 @@ CREATE TABLE generated_content (
 
 #### 6.3.2 Development & Deployment
 - **Development**: Local development with npm scripts
-- **Build**: TypeScript compilation and bundling
+- **Build**: javascript compilation and bundling
 - **Testing**: Jest for unit testing
 - **Deployment**: Simple local installation and execution
 

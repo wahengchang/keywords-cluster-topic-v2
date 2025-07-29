@@ -113,3 +113,44 @@
 - ✅ Fast execution (no SEMrush API calls)
 
 **Interactive Flow:** Launch CLI, select "Process Project", choose "Generate More Content", select project from list, configure titles per cluster through prompts
+
+---
+
+## Epic 3: Database Management 📊
+
+### US-008: View Database Status
+**As a user, I want to see database status information so that I can understand my data overview.**
+
+**Acceptance Criteria:**
+- ✅ Display total projects count (active/archived)
+- ✅ Show total processing runs count (completed/failed)
+- ✅ List recent processing activity with status indicators
+- ✅ Display database health and basic statistics
+
+**Interactive Flow:** Launch CLI, select "Database Management", choose "Show database status"
+
+---
+
+### US-009: List All Projects
+**As a user, I want to view all my projects with detailed information so that I can manage my work.**
+
+**Acceptance Criteria:**
+- ✅ Display project name, type (domain/subfolder), and target
+- ✅ Show project slug, keyword counts, and processing run statistics
+- ✅ Display creation date and last processed date
+- ✅ Format output in readable table with clear organization
+
+**Interactive Flow:** Launch CLI, select "Database Management", choose "List all projects"
+
+---
+
+### US-010: Automatic Data Storage  
+**As a user, I want data to be automatically saved to the database so that I don't need to manage storage manually.**
+
+**Acceptance Criteria:**
+- ✅ API data automatically flows to CSV then database
+- ✅ Projects are auto-created from CSV metadata
+- ✅ No manual migration or backup steps required
+- ✅ Seamless workflow without user intervention for data persistence
+
+**Interactive Flow:** Automatic - happens during any "Fetch Keywords" operation without user action

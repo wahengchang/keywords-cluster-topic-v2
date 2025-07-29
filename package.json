@@ -7,8 +7,6 @@
   },
   "scripts": {
     "start": "node cli/index-new.js",
-    "cli": "node src/cli/index.js",
-    "cli-new": "node src/cli/index.js",
     "test": "jest"
   },
   "author": "",

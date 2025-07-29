@@ -1,8 +1,31 @@
-// Display formatting utilities
+const chalk = require('chalk');
 
 class Output {
   static showHeader() {
-    console.log('🔍 Keywords Cluster Topic Automation CLI\n');
+    console.log();
+    console.log(chalk.blue.bold('██╗  ██╗███████╗██╗   ██╗██╗    ██╗ ██████╗ ██████╗ ██████╗ '));
+    console.log(chalk.blue.bold('██║ ██╔╝██╔════╝╚██╗ ██╔╝██║    ██║██╔═══██╗██╔══██╗██╔══██╗'));
+    console.log(chalk.blue.bold('█████╔╝ █████╗   ╚████╔╝ ██║ █╗ ██║██║   ██║██████╔╝██║  ██║'));
+    console.log(chalk.blue.bold('██╔═██╗ ██╔══╝    ╚██╔╝  ██║███╗██║██║   ██║██╔══██╗██║  ██║'));
+    console.log(chalk.blue.bold('██║  ██╗███████╗   ██║   ╚███╔███╔╝╚██████╔╝██║  ██║██████╔╝'));
+    console.log(chalk.blue.bold('╚═╝  ╚═╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝ '));
+    console.log();
+    console.log(chalk.cyan.bold('    Keywords Cluster Topic Tool - Interactive CLI'));
+    console.log(chalk.gray('    Keyword clustering and topic analysis with SEMrush integration'));
+    console.log();
+  }
+
+  static showWelcome() {
+    console.log(chalk.green('Welcome to Keywords Cluster Topic Tool!'));
+    console.log(chalk.gray('Use arrow keys to navigate, Enter to select, Ctrl+C to exit'));
+    console.log();
+  }
+
+  static showProcessingHeader(target) {
+    console.log();
+    console.log(chalk.yellow.bold(`🚀 Processing: ${target}`));
+    console.log(chalk.gray('━'.repeat(50)));
+    console.log();
   }
 
   static showProgress(message) {

@@ -8,14 +8,6 @@ const prompts = require('prompts');
 async function main() {
   Output.showHeader();
   
-  // Check if database command is requested via CLI args
-  const args = process.argv.slice(2);
-  if (args.includes('--database') || args.includes('--db')) {
-    const databaseCommand = new DatabaseCommand();
-    await databaseCommand.execute();
-    return;
-  }
-  
   // Show main menu
   const response = await prompts({
     type: 'select',

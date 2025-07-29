@@ -325,27 +325,19 @@ CREATE TABLE api_usage (
 - **Keywords → Generated Content**: One-to-many for content generation
 - **Clusters → Generated Content**: One-to-many for cluster-based content
 
-### 1.4 Data Migration Strategy
+### 1.4 Automatic Data Flow
 
-#### 1.4.1 From File-Based System
-1. **Project Discovery**: Scan existing project directories
-2. **Data Parsing**: Parse CSV files and extract metadata
-3. **Date Inference**: Use file timestamps for scrape dates
-4. **Data Import**: Import into new schema with preserved history
-5. **Validation**: Verify data integrity and relationships
+#### 1.4.1 API → CSV → Database Workflow  
+1. **SEMrush API**: Fetch keyword data via API calls
+2. **CSV Generation**: Save raw data to CSV files in output directory
+3. **Automatic Migration**: Immediately parse CSV and store in database
+4. **Project Creation**: Auto-create database projects from CSV metadata
+5. **Data Integrity**: Maintain relationships between CSV files and database records
 
-#### 1.4.2 Migration Script Requirements
-```sql
--- Migration tracking
-CREATE TABLE migration_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  source_path TEXT NOT NULL,
-  project_id INTEGER,
-  status TEXT CHECK(status IN ('pending', 'completed', 'failed')),
-  error_message TEXT,
-  migrated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
+#### 1.4.2 Database Management Operations
+- **Show Database Status**: View project counts, recent activity, and statistics
+- **List All Projects**: Browse active projects with details and metrics
+- **Read-Only Access**: Safe database viewing without destructive operations
 
 ### 1.5 Performance Considerations
 
@@ -378,25 +370,25 @@ CREATE TABLE migration_log (
 
 ## 2. Implementation Phases
 
-### Phase 1: Core Schema
+### Phase 1: Core Schema (✅ Complete)
 - Projects, Processing Runs, Raw Keywords, Keywords tables
 - Basic CLI operations for project management
-- Data import from CSV files
+- Automatic API → CSV → Database workflow
 
-### Phase 2: Analysis Features
+### Phase 2: Analysis Features (In Progress)
 - Clusters, Generated Content tables
 - Processing pipeline implementation
 - API usage tracking
 
 ### Phase 3: Advanced Features
 - Processing logs for debugging
-- Migration tools for existing data
 - Performance optimization
+- Historical data analysis
 
 ### Phase 4: Web Interface
 - Additional tables for UI state management
 - User preferences and settings
-- Export/import functionality
+- Data visualization capabilities
 
 ---
 
@@ -414,6 +406,6 @@ CREATE TABLE migration_log (
 - Database size: Efficient storage utilization
 
 ### 3.3 Usability Goals
-- Simple migration from file-based system
+- Seamless automatic data flow without manual intervention
 - Clear data lineage and history tracking
-- Easy data export and analysis capabilities
+- Intuitive database viewing and project management

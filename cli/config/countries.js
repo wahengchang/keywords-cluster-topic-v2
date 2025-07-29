@@ -1,5 +1,11 @@
 // SEMrush database countries
 const COUNTRIES = [
+
+  { title: 'United States (us)', value: 'us' },
+  { title: 'United Kingdom (uk)', value: 'uk' },
+  { title: 'Hong Kong (hk)', value: 'hk' },
+  { title: 'India (in)', value: 'in' },
+
   { title: 'Afghanistan (af)', value: 'af' },
   { title: 'Albania (al)', value: 'al' },
   { title: 'Algeria (dz)', value: 'dz' },
@@ -49,10 +55,8 @@ const COUNTRIES = [
   { title: 'Guyana (gy)', value: 'gy' },
   { title: 'Haiti (ht)', value: 'ht' },
   { title: 'Honduras (hn)', value: 'hn' },
-  { title: 'Hong Kong (hk)', value: 'hk' },
   { title: 'Hungary (hu)', value: 'hu' },
   { title: 'Iceland (is)', value: 'is' },
-  { title: 'India (in)', value: 'in' },
   { title: 'Indonesia (id)', value: 'id' },
   { title: 'Ireland (ie)', value: 'ie' },
   { title: 'Israel (il)', value: 'il' },
@@ -110,8 +114,6 @@ const COUNTRIES = [
   { title: 'Turkey (tr)', value: 'tr' },
   { title: 'Ukraine (ua)', value: 'ua' },
   { title: 'United Arab Emirates (ae)', value: 'ae' },
-  { title: 'United Kingdom (uk)', value: 'uk' },
-  { title: 'United States (us)', value: 'us' },
   { title: 'Uruguay (uy)', value: 'uy' },
   { title: 'Venezuela (ve)', value: 've' },
   { title: 'Vietnam (vn)', value: 'vn' },

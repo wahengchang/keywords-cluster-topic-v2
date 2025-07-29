@@ -1,5 +1,6 @@
 const axios = require('axios');
 const fs = require('fs');
+const path = require('path');
 
 /**
  * Fetch SEMrush keywords data (generic for url or domain)
@@ -12,6 +13,18 @@ const fs = require('fs');
  * @returns {Promise<string>} CSV data
  */
 async function fetchSemrushKeywordsDomain({ target, database, limit }) {
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const samplePath = path.join(__dirname, '..', 'output', 'semrush_lbank_com_2025-07-28.csv');
+      const sampleData = fs.readFileSync(samplePath, 'utf8');
+      console.log('Using sample data from:', samplePath);
+      return sampleData;
+    } catch (err) {
+      console.error('Error reading sample file:', err.message);
+      throw new Error('Sample file not found. Please ensure sample/output.csv exists.');
+    }
+  }
+
   const apiKey = process.env.SEMRUSH_API_KEY;
   const endpoint = 'https://api.semrush.com/';
   const params = {
@@ -47,6 +60,18 @@ async function fetchSemrushKeywordsDomain({ target, database, limit }) {
  * @returns {Promise<string>} CSV data
  */
 async function fetchSemrushKeywordsSubfolder({ apiKey, subfolder, database, limit }) {
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const samplePath = path.join(__dirname, '..', '..', 'sample', 'output.csv');
+      const sampleData = fs.readFileSync(samplePath, 'utf8');
+      console.log('Using sample data from:', samplePath);
+      return sampleData;
+    } catch (err) {
+      console.error('Error reading sample file:', err.message);
+      throw new Error('Sample file not found. Please ensure sample/output.csv exists.');
+    }
+  }
+
   const endpoint = 'https://api.semrush.com/';
   const params = {
     type: 'subfolder_organic',

@@ -3,12 +3,14 @@ const { DatabasePrompts } = require('../prompts/database-selection');
 const { KeywordService } = require('../../src/services/keyword-service');
 const { Settings } = require('../config/settings');
 const { Output } = require('../utils/output');
+const DatabaseMigration = require('../../src/database/migration');
 
 // Main fetch command
 class FetchCommand {
   constructor() {
     this.settings = new Settings();
     this.keywordService = new KeywordService(this.settings);
+    this.migration = new DatabaseMigration();
   }
 
   async validateEnvironment() {
@@ -51,14 +53,21 @@ class FetchCommand {
       Output.showProgress('Fetching SEMrush data');
       const result = await this.keywordService.processKeywordRequest(params);
 
+      // Automatically save to database
+      Output.showProgress('Saving to database');
+      const dbResult = await this.migration.migrateSingleCSV(result.filePath);
+      
       // Show results
       Output.showSuccess(`SEMrush data saved: ${result.filePath}`);
+      Output.showSuccess(`Database project created: ${dbResult.project.name}`);
       Output.showSummary({
         'Method': result.method,
         'Target': result.target,
         'Database': result.database,
         'Keywords fetched': result.keywordCount,
-        'Output file': result.filename
+        'Output file': result.filename,
+        'Database project': dbResult.project.name,
+        'Database keywords': dbResult.keywordCount
       });
 
     } catch (error) {

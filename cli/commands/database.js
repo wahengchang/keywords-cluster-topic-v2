@@ -1,13 +1,11 @@
 const prompts = require('prompts');
 const { Output } = require('../utils/output');
-const DatabaseMigration = require('../../src/database/migration');
 const { getDatabase, closeDatabase } = require('../../src/database/connection');
 const ProjectModel = require('../../src/database/models/project');
 const ProcessingRunModel = require('../../src/database/models/processing-run');
 
 class DatabaseCommand {
   constructor() {
-    this.migration = new DatabaseMigration();
   }
 
   async execute() {
@@ -15,23 +13,11 @@ class DatabaseCommand {
       const action = await this.promptForAction();
       
       switch (action) {
-        case 'migrate':
-          await this.handleMigration();
-          break;
         case 'status':
           await this.showDatabaseStatus();
           break;
         case 'list-projects':
           await this.listProjects();
-          break;
-        case 'export':
-          await this.handleExport();
-          break;
-        case 'clear':
-          await this.handleClear();
-          break;
-        case 'backup':
-          await this.handleBackup();
           break;
         default:
           Output.showInfo('No action selected. Exiting...');
@@ -49,58 +35,14 @@ class DatabaseCommand {
       name: 'action',
       message: 'What database operation would you like to perform?',
       choices: [
-        { title: 'Migrate CSV files to database', value: 'migrate' },
         { title: 'Show database status', value: 'status' },
-        { title: 'List all projects', value: 'list-projects' },
-        { title: 'Export project to CSV', value: 'export' },
-        { title: 'Backup database', value: 'backup' },
-        { title: 'Clear database (⚠️  Dangerous)', value: 'clear' }
+        { title: 'List all projects', value: 'list-projects' }
       ]
     });
 
     return response.action;
   }
 
-  async handleMigration() {
-    Output.showInfo('Starting CSV migration to database...');
-    
-    const pathResponse = await prompts({
-      type: 'text',
-      name: 'outputPath',
-      message: 'Enter the path to your CSV output directory:',
-      initial: './output'
-    });
-
-    if (!pathResponse.outputPath) {
-      Output.showWarning('Migration cancelled - no path provided');
-      return;
-    }
-
-    try {
-      const results = await this.migration.migrateFromOutputDirectory(pathResponse.outputPath);
-      
-      Output.showSuccess(`Migration completed!`);
-      Output.showInfo(`✓ ${results.migrated} files migrated successfully`);
-      
-      if (results.errors.length > 0) {
-        Output.showWarning(`✗ ${results.errors.length} files failed to migrate:`);
-        results.errors.forEach(error => {
-          Output.showError(`  - ${error.file}: ${error.error}`);
-        });
-      }
-
-      // Show summary of created projects
-      if (results.projects.length > 0) {
-        Output.showInfo('\nCreated projects:');
-        results.projects.forEach(project => {
-          Output.showInfo(`  - ${project.project.name} (${project.keywordCount} keywords)`);
-        });
-      }
-      
-    } catch (error) {
-      Output.showError(`Migration failed: ${error.message}`);
-    }
-  }
 
   async showDatabaseStatus() {
     try {
@@ -170,118 +112,6 @@ class DatabaseCommand {
     }
   }
 
-  async handleExport() {
-    try {
-      const db = await getDatabase();
-      const projectModel = new ProjectModel(db);
-
-      const projects = projectModel.findActive();
-      
-      if (projects.length === 0) {
-        Output.showInfo('No projects found to export.');
-        return;
-      }
-
-      const projectChoices = projects.map(project => ({
-        title: `${project.name} (${project.project_type})`,
-        value: project.id,
-        description: project.domain || project.url
-      }));
-
-      const projectResponse = await prompts({
-        type: 'select',
-        name: 'projectId',
-        message: 'Select a project to export:',
-        choices: projectChoices
-      });
-
-      if (!projectResponse.projectId) {
-        Output.showWarning('Export cancelled - no project selected');
-        return;
-      }
-
-      const pathResponse = await prompts({
-        type: 'text',
-        name: 'outputPath',
-        message: 'Enter the output file path:',
-        initial: `./exports/project_${projectResponse.projectId}_${new Date().toISOString().split('T')[0]}.csv`
-      });
-
-      if (!pathResponse.outputPath) {
-        Output.showWarning('Export cancelled - no output path provided');
-        return;
-      }
-
-      const result = await this.migration.exportProjectToCSV(projectResponse.projectId, pathResponse.outputPath);
-      
-      Output.showSuccess(`Project exported successfully!`);
-      Output.showInfo(`  Project: ${result.project.name}`);
-      Output.showInfo(`  Keywords: ${result.keywordCount}`);
-      Output.showInfo(`  File: ${result.filePath}`);
-
-    } catch (error) {
-      Output.showError(`Export failed: ${error.message}`);
-    }
-  }
-
-  async handleBackup() {
-    try {
-      const pathResponse = await prompts({
-        type: 'text',
-        name: 'backupPath',
-        message: 'Enter the backup file path:',
-        initial: `./backups/keywords-cluster-backup-${new Date().toISOString().split('T')[0]}.db`
-      });
-
-      if (!pathResponse.backupPath) {
-        Output.showWarning('Backup cancelled - no path provided');
-        return;
-      }
-
-      const db = await getDatabase();
-      await db.backup(pathResponse.backupPath);
-      
-      Output.showSuccess(`Database backed up successfully to: ${pathResponse.backupPath}`);
-
-    } catch (error) {
-      Output.showError(`Backup failed: ${error.message}`);
-    }
-  }
-
-  async handleClear() {
-    Output.showWarning('⚠️  This will permanently delete ALL data in the database!');
-    
-    const confirmResponse = await prompts({
-      type: 'confirm',
-      name: 'confirmed',
-      message: 'Are you absolutely sure you want to clear the database?',
-      initial: false
-    });
-
-    if (!confirmResponse.confirmed) {
-      Output.showInfo('Clear operation cancelled.');
-      return;
-    }
-
-    const doubleConfirmResponse = await prompts({
-      type: 'text',
-      name: 'confirmation',
-      message: 'Type "CLEAR DATABASE" to confirm:',
-      validate: value => value === 'CLEAR DATABASE' ? true : 'Please type exactly "CLEAR DATABASE" to confirm'
-    });
-
-    if (doubleConfirmResponse.confirmation !== 'CLEAR DATABASE') {
-      Output.showInfo('Clear operation cancelled - confirmation failed.');
-      return;
-    }
-
-    try {
-      await this.migration.clearDatabase();
-      Output.showSuccess('Database cleared successfully.');
-    } catch (error) {
-      Output.showError(`Failed to clear database: ${error.message}`);
-    }
-  }
 }
 
 module.exports = { DatabaseCommand };
