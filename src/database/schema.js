@@ -74,12 +74,19 @@ class DatabaseSchema {
         raw_keyword_id INTEGER,
         keyword TEXT NOT NULL,
         cleaned_keyword TEXT,
+        is_cleaned BOOLEAN DEFAULT FALSE,
+        original_keyword TEXT,
+        quality_score REAL,
         search_volume INTEGER,
         competition REAL,
         cpc REAL,
         position INTEGER,
         traffic_percent REAL,
         trends TEXT,
+        duplicate_group_id INTEGER,
+        master_keyword_id INTEGER,
+        cleaning_metadata TEXT,
+        deduplication_notes TEXT,
         intent TEXT CHECK(intent IN ('informational', 'navigational', 'commercial', 'transactional')),
         intent_confidence REAL,
         cluster_id INTEGER,
@@ -99,7 +106,25 @@ class DatabaseSchema {
         FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
         FOREIGN KEY (run_id) REFERENCES processing_runs (id) ON DELETE CASCADE,
         FOREIGN KEY (raw_keyword_id) REFERENCES raw_keywords (id),
-        FOREIGN KEY (duplicate_of_id) REFERENCES keywords (id)
+        FOREIGN KEY (duplicate_of_id) REFERENCES keywords (id),
+        FOREIGN KEY (master_keyword_id) REFERENCES keywords (id)
+      )
+    `);
+
+    // Deduplication groups table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS deduplication_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        run_id INTEGER NOT NULL,
+        group_type TEXT,
+        master_keyword_id INTEGER,
+        keyword_count INTEGER,
+        similarity_threshold REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (project_id) REFERENCES projects (id),
+        FOREIGN KEY (run_id) REFERENCES processing_runs (id),
+        FOREIGN KEY (master_keyword_id) REFERENCES keywords (id)
       )
     `);
 
@@ -206,8 +231,11 @@ class DatabaseSchema {
       'CREATE INDEX IF NOT EXISTS idx_keywords_run ON keywords (run_id)',
       'CREATE INDEX IF NOT EXISTS idx_keywords_cluster ON keywords (cluster_id)',
       'CREATE INDEX IF NOT EXISTS idx_keywords_intent ON keywords (intent)',
+      'CREATE INDEX IF NOT EXISTS idx_keywords_master ON keywords (master_keyword_id)',
       'CREATE INDEX IF NOT EXISTS idx_clusters_project ON keyword_clusters (project_id)',
       'CREATE INDEX IF NOT EXISTS idx_clusters_run ON keyword_clusters (run_id)',
+      'CREATE INDEX IF NOT EXISTS idx_dedupe_project ON deduplication_groups (project_id)',
+      'CREATE INDEX IF NOT EXISTS idx_dedupe_run ON deduplication_groups (run_id)',
       'CREATE INDEX IF NOT EXISTS idx_content_project ON generated_content (project_id)',
       'CREATE INDEX IF NOT EXISTS idx_content_run ON generated_content (run_id)',
       'CREATE INDEX IF NOT EXISTS idx_logs_run ON processing_logs (run_id)',

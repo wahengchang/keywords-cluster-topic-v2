@@ -2,6 +2,7 @@
 
 const { FetchCommand } = require('./commands/fetch');
 const { DatabaseCommand } = require('./commands/database');
+const { ProcessCommand } = require('./commands/process');
 const { Output } = require('./utils/output');
 const prompts = require('prompts');
 
@@ -15,7 +16,8 @@ async function main() {
     message: 'What would you like to do?',
     choices: [
       { title: 'Fetch Keywords (Original)', value: 'fetch' },
-      { title: 'Database Management', value: 'database' }
+      { title: 'Database Management', value: 'database' },
+      { title: 'Data Processing', value: 'process' }
     ]
   });
 
@@ -27,6 +29,10 @@ async function main() {
     case 'database':
       const databaseCommand = new DatabaseCommand();
       await databaseCommand.execute();
+      break;
+    case 'process':
+      const processCommand = new ProcessCommand();
+      await processCommand.execute();
       break;
     default:
       Output.showInfo('No command selected. Exiting...');
