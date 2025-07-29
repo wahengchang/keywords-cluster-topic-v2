@@ -83,11 +83,16 @@ class DatabaseSchema {
         intent TEXT CHECK(intent IN ('informational', 'navigational', 'commercial', 'transactional')),
         intent_confidence REAL,
         cluster_id INTEGER,
+        semantic_cluster_id INTEGER,
         cluster_name TEXT,
         cluster_center_distance REAL,
         priority_score REAL,
         priority_rank INTEGER,
         priority_tier TEXT CHECK(priority_tier IN ('high', 'medium', 'low')),
+        difficulty_score REAL,
+        opportunity_score REAL,
+        business_value_score REAL,
+        cluster_coherence_score REAL,
         word_count INTEGER,
         character_count INTEGER,
         contains_brand BOOLEAN DEFAULT FALSE,
@@ -109,19 +114,21 @@ class DatabaseSchema {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         project_id INTEGER NOT NULL,
         run_id INTEGER NOT NULL,
-        cluster_id INTEGER NOT NULL,
         cluster_name TEXT,
         cluster_theme TEXT,
+        cluster_description TEXT,
         keyword_count INTEGER DEFAULT 0,
         total_search_volume INTEGER DEFAULT 0,
         avg_competition REAL,
         avg_cpc REAL,
-        center_vector TEXT,
         coherence_score REAL,
-        commercial_intent_ratio REAL,
+        silhouette_score REAL,
+        business_value_score REAL,
+        center_vector TEXT,
+        semantic_center TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
-        FOREIGN KEY (run_id) REFERENCES processing_runs (id) ON DELETE CASCADE
+        FOREIGN KEY (project_id) REFERENCES projects (id),
+        FOREIGN KEY (run_id) REFERENCES processing_runs (id)
       )
     `);
 
@@ -189,6 +196,25 @@ class DatabaseSchema {
         FOREIGN KEY (run_id) REFERENCES processing_runs (id) ON DELETE CASCADE
       )
     `);
+
+    // Priority analysis results
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS priority_analysis (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        run_id INTEGER NOT NULL,
+        high_priority_count INTEGER,
+        medium_priority_count INTEGER,
+        low_priority_count INTEGER,
+        top_opportunities TEXT,
+        quick_wins TEXT,
+        long_term_targets TEXT,
+        scoring_weights TEXT,
+        analysis_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (project_id) REFERENCES projects (id),
+        FOREIGN KEY (run_id) REFERENCES processing_runs (id)
+      )
+    `);
   }
 
   static createIndexes(db) {
@@ -211,7 +237,8 @@ class DatabaseSchema {
       'CREATE INDEX IF NOT EXISTS idx_content_project ON generated_content (project_id)',
       'CREATE INDEX IF NOT EXISTS idx_content_run ON generated_content (run_id)',
       'CREATE INDEX IF NOT EXISTS idx_logs_run ON processing_logs (run_id)',
-      'CREATE INDEX IF NOT EXISTS idx_api_usage_run ON api_usage (run_id)'
+      'CREATE INDEX IF NOT EXISTS idx_api_usage_run ON api_usage (run_id)',
+      'CREATE INDEX IF NOT EXISTS idx_priority_run ON priority_analysis (run_id)'
     ];
 
     indexes.forEach(indexSql => {
