@@ -49,6 +49,52 @@ class ProjectModel extends BaseModel {
     return this.update(id, { last_processed: new Date().toISOString() });
   }
 
+  findByDomain(domain) {
+    const query = `SELECT * FROM ${this.tableName} WHERE domain = ? AND status = 'active'`;
+    return this.db.prepare(query).get(domain);
+  }
+
+  findByUrl(url) {
+    const query = `SELECT * FROM ${this.tableName} WHERE url = ? AND status = 'active'`;
+    return this.db.prepare(query).get(url);
+  }
+
+  // Dangerous operations - use with caution
+  deleteProjectCompletely(id) {
+    // This will cascade delete all related data due to foreign key constraints
+    return this.delete(id);
+  }
+
+  clearAllProjects() {
+    // Delete all projects and related data
+    const transaction = this.db.transaction(() => {
+      // Order matters due to foreign key constraints
+      this.db.prepare('DELETE FROM api_usage').run();
+      this.db.prepare('DELETE FROM processing_logs').run();
+      this.db.prepare('DELETE FROM generated_content').run();
+      this.db.prepare('DELETE FROM priority_analysis').run();
+      this.db.prepare('DELETE FROM deduplication_groups').run();
+      this.db.prepare('DELETE FROM keyword_clusters').run();
+      this.db.prepare('DELETE FROM keywords').run();
+      this.db.prepare('DELETE FROM raw_keywords').run();
+      this.db.prepare('DELETE FROM processing_runs').run();
+      this.db.prepare('DELETE FROM projects').run();
+      
+      // Reset auto-increment counters
+      this.db.prepare('DELETE FROM sqlite_sequence').run();
+    });
+    
+    return transaction();
+  }
+
+  getProjectWithStats(id) {
+    const project = this.findById(id);
+    if (!project) return null;
+    
+    const stats = this.getProjectStats(id);
+    return { ...project, stats };
+  }
+
   getProjectStats(id) {
     const queries = {
       totalRuns: 'SELECT COUNT(*) as count FROM processing_runs WHERE project_id = ?',

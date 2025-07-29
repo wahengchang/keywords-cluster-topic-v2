@@ -10,7 +10,7 @@ class DatabasePrompts {
       name: 'database',
       message: 'Select SEMrush database:',
       choices: COUNTRIES,
-      initial: 127 // Default to US (index of 'United States (us)')
+      initial: 0 // Default to US (first in list)
     });
   }
 
@@ -31,7 +31,7 @@ class DatabasePrompts {
         name: 'database',
         message: 'Select SEMrush database:',
         choices: COUNTRIES,
-        initial: 127 // Default to US
+        initial: 0 // Default to US
       },
       {
         type: 'number',

@@ -1,9 +1,9 @@
 # User Stories - Keywords Cluster Topic Automation V2
 
 ## Document Information
-- **Version**: 1.0.0
-- **Date**: 2025-07-25
-- **Project**: Personal keyword research tool
+- **Version**: 1.1.0
+- **Date**: 2025-07-29
+- **Project**: Personal keyword research tool with database management
 - **Format**: Simple, lean user stories for single developer
 
 ---
@@ -169,3 +169,35 @@
 - ✅ Seamless workflow without user intervention for data persistence
 
 **Interactive Flow:** Automatic - happens during any "Fetch Keywords" operation without user action
+
+---
+
+### US-011: Remove Selected Project
+**As a user, I want to remove specific projects and all their data so that I can clean up unwanted projects.**
+
+**Acceptance Criteria:**
+- ✅ I can select from a list of existing projects
+- ✅ System shows detailed information about what will be deleted (keywords, runs, content)
+- ✅ System requires explicit typed confirmation to prevent accidental deletion
+- ✅ System permanently deletes project and all cascaded related data
+- ✅ System shows statistics of freed database space
+- ✅ Operation can be cancelled at any step
+
+**Interactive Flow:** Launch CLI, select "Database Management", choose "⚠️ Remove selected project", select project from list, review deletion details, type confirmation, confirm deletion
+
+---
+
+### US-012: Clear Entire Database
+**As a user, I want to completely clear the database so that I can start fresh or clean up all data.**
+
+**Acceptance Criteria:**
+- ✅ System shows comprehensive summary of all data that will be deleted
+- ✅ System requires triple confirmation process for safety
+- ✅ First confirmation: Understanding that all data will be lost
+- ✅ Second confirmation: Typed exact phrase "CLEAR ALL DATABASE"
+- ✅ Third confirmation: Final "last chance" yes/no confirmation
+- ✅ System permanently deletes all projects, keywords, runs, and related data
+- ✅ System resets auto-increment counters for clean slate
+- ✅ CSV backup files in /output/ directory remain untouched
+
+**Interactive Flow:** Launch CLI, select "Database Management", choose "🚨 Clear entire database", review deletion summary, confirm understanding, type exact confirmation phrase, final confirmation, complete database wipe

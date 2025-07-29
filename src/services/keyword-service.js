@@ -3,6 +3,7 @@ const { getDatabase } = require('../database/connection');
 const ProjectModel = require('../database/models/project');
 const ProcessingRunModel = require('../database/models/processing-run');
 const RawKeywordModel = require('../database/models/raw-keyword');
+const { FileOperations } = require('../../cli/utils/file-operations');
 
 // Business logic for keyword operations
 class KeywordService {
@@ -114,6 +115,10 @@ class KeywordService {
       // Update project last processed time
       await this.projectModel.updateLastProcessed(project.id);
 
+      // Save CSV file for migration compatibility
+      const filename = FileOperations.generateFilename(params.target, 'semrush');
+      const filePath = FileOperations.saveData(csvData, filename);
+
       return {
         project,
         run,
@@ -121,6 +126,8 @@ class KeywordService {
         method: params.method,
         target: params.target,
         database: params.database,
+        filename,
+        filePath,
         csvData
       };
     } catch (error) {

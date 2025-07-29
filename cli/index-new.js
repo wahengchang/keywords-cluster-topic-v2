@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const { FetchCommand } = require('./commands/fetch');
+const { CreateCommand } = require('./commands/create');
+const { RescrapeCommand } = require('./commands/rescrape');
 const { DatabaseCommand } = require('./commands/database');
-const { ProcessCommand } = require('./commands/process');
 const { Output } = require('./utils/output');
 const prompts = require('prompts');
 
@@ -15,24 +15,30 @@ async function main() {
     name: 'command',
     message: 'What would you like to do?',
     choices: [
-      { title: 'Fetch Keywords (Original)', value: 'fetch' },
+      { title: 'Create New Project (Domain/Subfolder)', value: 'create' },
+      { title: 'Rescrape Existing Project', value: 'rescrape' },
       { title: 'Database Management', value: 'database' },
-      { title: 'Data Processing', value: 'process' }
+      { title: 'Generate More Content (Coming Soon)', value: 'writemore', disabled: true },
+      { title: 'Cross-Project Analysis (Coming Soon)', value: 'analyze', disabled: true }
     ]
   });
 
   switch (response.command) {
-    case 'fetch':
-      const fetchCommand = new FetchCommand();
-      await fetchCommand.execute();
+    case 'create':
+      const createCommand = new CreateCommand();
+      await createCommand.execute();
+      break;
+    case 'rescrape':
+      const rescrapeCommand = new RescrapeCommand();
+      await rescrapeCommand.execute();
       break;
     case 'database':
       const databaseCommand = new DatabaseCommand();
       await databaseCommand.execute();
       break;
-    case 'process':
-      const processCommand = new ProcessCommand();
-      await processCommand.execute();
+    case 'writemore':
+    case 'analyze':
+      Output.showInfo('This feature is coming soon!');
       break;
     default:
       Output.showInfo('No command selected. Exiting...');

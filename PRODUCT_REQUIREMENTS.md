@@ -1,9 +1,9 @@
 # Keywords Cluster Topic Automation V2 - Product Requirements Document
 
 ## Document Information
-- **Version**: 2.0.0
-- **Date**: 2025-07-25
-- **Status**: Draft
+- **Version**: 2.1.0
+- **Date**: 2025-07-29
+- **Status**: Updated with Database Management Features
 - **Author**: System Architect
 - **Stakeholders**: Development Team, Product Management, End Users
 
@@ -89,6 +89,8 @@ As a user, I want to create domain-level projects so that I can analyze entire d
 As a user, I want to create subfolder projects so that I can analyze specific URL paths
 As a user, I want to view all my projects so that I can manage my work
 As a user, I want to duplicate existing projects so that I can reuse configurations
+As a user, I want to remove specific projects so that I can clean up unwanted data
+As a user, I want to clear the entire database so that I can start fresh when needed
 ```
 
 #### 3.3.2 Data Processing
@@ -124,7 +126,8 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 - **Project Configuration**: Settings for clustering, title generation, and processing options
 - **Project Duplication**: Clone existing projects with all configurations
 - **Project Archival**: Archive completed or obsolete projects
-- **Project Deletion**: Soft delete with recovery options
+- **Project Deletion**: Complete project removal with safety confirmations
+- **Database Cleanup**: Full database clearing with triple confirmation process
 
 #### 4.1.2 Project Organization
 - **Project Dashboard**: Overview of all user projects with status indicators
@@ -175,22 +178,50 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 - **Trend Analysis**: Identify emerging keywords and topics
 - **Custom Reports**: Build and save custom analytical reports
 
-### 4.4 Interface Requirements
+### 4.4 Database Management System
 
-#### 4.4.1 Web User Interface (Future Phase)
+#### 4.4.1 Database Operations
+- **Status Monitoring**: Real-time database health and statistics display
+- **Project Listing**: Comprehensive project overview with metadata
+- **Selective Removal**: Individual project deletion with safety confirmations
+- **Complete Reset**: Full database clearing with triple confirmation process
+- **Data Statistics**: Display keyword counts, processing runs, and storage metrics
+- **Backup Safety**: CSV file preservation during all database operations
+
+#### 4.4.2 Safety & Confirmation Protocols
+- **Project Removal Process**:
+  1. Project selection with detailed statistics display
+  2. Warning message showing all data to be deleted
+  3. Typed confirmation requiring exact project name
+  4. Cascading deletion of all related records
+  5. Success confirmation with freed space statistics
+
+- **Database Clear Process**:
+  1. Comprehensive data summary display
+  2. Understanding confirmation (Yes/No)
+  3. Typed confirmation requiring exact phrase "CLEAR ALL DATABASE"
+  4. Final "last chance" confirmation
+  5. Complete database wipe with counter reset
+  6. CSV backup files remain untouched
+
+### 4.5 Interface Requirements
+
+#### 4.5.1 Web User Interface (Future Phase)
 - **Responsive Design**: Mobile-friendly responsive web application
 - **Dashboard**: Central hub for project management and analytics
 - **Project Workspace**: Dedicated interface for project operations
 - **Data Visualization**: Charts, graphs, and interactive visualizations
 - **Real-Time Updates**: Live progress updates and notifications
 
-#### 4.4.2 Command Line Interface (Phase 1)
+#### 4.5.2 Command Line Interface (Phase 1)
 - **Project Commands**: All core operations available via CLI
-- **Database Management**: View project status and listings
+- **Database Management**: View project status, listings, and data removal operations
 - **Automatic Processing**: Seamless API → CSV → Database workflow
 - **Interactive Prompts**: User-friendly CLI interface with guided workflows
+- **Safety Mechanisms**: Multi-step confirmation processes for destructive operations
+- **Data Preservation**: CSV backups preserved during database operations
 
-#### 4.4.3 Simple REST API (Future Phase)
+#### 4.5.3 Simple REST API (Future Phase)
 - **Resource Management**: Basic CRUD operations for projects and data
 - **Batch Endpoints**: Bulk operations for efficiency
 - **Simple Access**: Direct access without authentication complexity
@@ -228,6 +259,15 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 - **Validation**: Input validation and data integrity checks
 - **Error Handling**: Comprehensive error recovery mechanisms
 - **Automatic Storage**: Seamless data persistence without manual intervention
+- **Cascading Deletes**: Proper foreign key constraints for data consistency
+- **Backup Preservation**: CSV files in /output/ directory preserved during database operations
+
+#### 5.3.2 Safety Mechanisms
+- **Multi-Step Confirmation**: Destructive operations require multiple confirmations
+- **Typed Confirmations**: Exact phrase typing required for dangerous operations
+- **Operation Cancellation**: Ability to cancel destructive operations at any step
+- **Clear Warnings**: Explicit warnings about data loss and permanent deletion
+- **Statistics Display**: Show exactly what will be deleted before confirmation
 
 ### 5.4 API Key Management
 
