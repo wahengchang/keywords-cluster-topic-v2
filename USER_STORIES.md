@@ -80,11 +80,10 @@
 1. SEMrush data acquisition
 2. Data cleaning and normalization
 3. Keyword deduplication
-4. Intent classification (AI)
-5. Keyword clustering (K-means)
-6. Priority scoring
-7. Title generation (AI)
-8. Summary statistics
+4. Keyword clustering (K-means)
+5. Priority scoring
+6. Title generation (AI)
+7. Summary statistics
 
 ---
 

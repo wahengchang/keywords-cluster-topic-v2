@@ -51,11 +51,10 @@ The current system is a Node.js CLI application with the following characteristi
 1. **SEMrush Data Acquisition**: Fetch keyword data via API
 2. **Data Cleaning**: Normalize and clean keyword data
 3. **Deduplication**: Remove duplicate keywords
-4. **Intent Classification**: Categorize by search intent (AI-powered)
-5. **Keyword Clustering**: Semantic grouping using K-means
-6. **Prioritization**: Score and rank keywords
-7. **Title Generation**: AI-powered content title creation
-8. **Summary Generation**: Processing statistics and metrics
+4. **Keyword Clustering**: Semantic grouping using K-means
+5. **Prioritization**: Score and rank keywords
+6. **Title Generation**: AI-powered content title creation
+7. **Summary Generation**: Processing statistics and metrics
 
 #### 2.2.2 Core Operations
 - **CREATE**: Initialize new keyword analysis projects
@@ -335,7 +334,6 @@ CREATE TABLE keywords (
   cleaned_keyword TEXT,
   search_volume INTEGER,
   competition REAL,
-  intent TEXT,
   cluster_id INTEGER,
   priority_score REAL,
   metadata TEXT, -- JSON blob
