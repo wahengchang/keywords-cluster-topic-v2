@@ -33,7 +33,6 @@ npm test
 ## Key Files & Documentation
 all the github issue/task related files are in ./issues folder
 all the draft/communication files are in ./draft folder
-- `README.md` - Main project documentation
 - `PRODUCT_REQUIREMENTS.md` - Product specifications
 - `DATABASE_SCHEMA_REQUIREMENTS.md` - Database schema details
 - `USER_STORIES.md` - User stories and requirements

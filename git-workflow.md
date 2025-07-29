@@ -4,7 +4,16 @@
 1. Draft issue → Create issue → Delete draft
 2. Sync main → Create branch → Code → Commit → Push → PR → Merge
 
+## Key Files
+make sure to update and commit these files
+- .gitignore
+- package-lock.json
+- `PRODUCT_REQUIREMENTS.md` - Product specifications
+- `DATABASE_SCHEMA_REQUIREMENTS.md` - Database schema details
+- `USER_STORIES.md` - User stories and requirements
+
 ## Workflow
+
 
 ### 1. Create Issue
 ```bash
