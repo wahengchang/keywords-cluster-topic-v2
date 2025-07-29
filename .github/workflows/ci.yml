@@ -72,14 +72,30 @@ jobs:
       run: |
         node -e "
         const { getDatabase, closeDatabase } = require('./src/database/connection');
+        const ProjectModel = require('./src/database/models/project');
+        const ProcessingRunModel = require('./src/database/models/processing-run');
         const RawKeywordModel = require('./src/database/models/raw-keyword');
         
         const testCSV = 'Keyword;Position;Previous Position;Position Difference;Search Volume;CPC;Url;Traffic (%);Traffic Cost (%);Competition;Number of Results;Trends\ntest keyword;1;1;0;1000;0.50;https://example.com;10.0;5.0;0.1;1000000;0.5,0.6,0.7';
         
         getDatabase()
-          .then((db) => {
+          .then(async (db) => {
+            // Create required project and processing run first
+            const projectModel = new ProjectModel(db);
+            const runModel = new ProcessingRunModel(db);
             const rawKeywordModel = new RawKeywordModel(db);
-            const keywords = rawKeywordModel.saveFromCSV(1, 1, testCSV);
+            
+            const project = await projectModel.createProject({
+              name: 'Test Project',
+              projectType: 'domain',
+              domain: 'test.com'
+            });
+            
+            const run = await runModel.startRun(project.id, 'create');
+            
+            // Now test CSV parsing with proper foreign keys
+            const keywords = rawKeywordModel.saveFromCSV(project.id, run.id, testCSV);
+            
             if (keywords.length > 0) {
               console.log('✅ CSV parsing test passed - parsed', keywords.length, 'keywords');
             } else {
