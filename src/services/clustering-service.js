@@ -8,14 +8,42 @@ class ClusteringService {
   }
 
   async performAdvancedClustering(keywords, options = {}) {
-    if (!keywords || keywords.length === 0) return [];
+    if (!keywords || keywords.length === 0) {
+      return [];
+    }
+    
+    // Handle single keyword case
+    if (keywords.length === 1) {
+      return [{
+        id: 0,
+        name: keywords[0].keyword,
+        keywords: keywords,
+        embeddings: [],
+        center: [],
+        silhouette: 1.0,
+        coherence: 1.0
+      }];
+    }
 
     const { embeddings, vocabulary } = this.generateSemanticEmbeddings(keywords);
     const features = this.buildFeatureMatrix(keywords, embeddings);
 
     const k = options.clusterCount || await this.optimizeClusterCount(features);
+    
+    // Handle case where we need only 1 cluster
+    if (k === 1) {
+      return [{
+        id: 0,
+        name: this.generateSimpleClusterName(keywords),
+        keywords: keywords,
+        embeddings: embeddings,
+        center: [],
+        silhouette: 1.0,
+        coherence: this.analyzeClusterCoherence({ keywords })
+      }];
+    }
+    
     const result = await this.kMeansClustering(features, k);
-
     const clusters = this.buildClusters(result, keywords, embeddings, vocabulary);
     await this.generateClusterNames(clusters);
     this.assessClusterQuality(clusters, features, result.clusters);
@@ -44,9 +72,16 @@ class ClusteringService {
 
   async optimizeClusterCount(features, maxClusters = 10) {
     const min = 2;
+    const maxPossible = Math.min(maxClusters, features.length - 1);
+    
+    // If we have too few data points for clustering, return 1
+    if (features.length < min) {
+      return 1;
+    }
+    
     let bestScore = -1;
     let bestK = min;
-    for (let k = min; k <= maxClusters; k++) {
+    for (let k = min; k <= maxPossible; k++) {
       const res = await this.kMeansClustering(features, k);
       const score = this.calculateSilhouetteScore(features, res.clusters, k);
       if (score > bestScore) {
@@ -95,6 +130,18 @@ class ClusteringService {
       clusters[cid].embeddings.push(embeddings[idx]);
     });
     return clusters;
+  }
+
+  generateSimpleClusterName(keywords) {
+    const tokenizer = new natural.WordTokenizer();
+    const freq = {};
+    keywords.forEach(k => {
+      tokenizer.tokenize(k.keyword.toLowerCase()).forEach(t => {
+        freq[t] = (freq[t] || 0) + 1;
+      });
+    });
+    const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+    return sorted.slice(0, 3).map(e => e[0]).join(' ');
   }
 
   async generateClusterNames(clusters) {

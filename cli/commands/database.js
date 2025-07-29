@@ -241,9 +241,9 @@ class DatabaseCommand {
       const confirmResponse = await prompts({
         type: 'text',
         name: 'confirmation',
-        message: 'Type "CLEAR ALL DATABASE" to confirm complete deletion:',
+        message: 'Type "CLEAR" to confirm complete deletion:',
         validate: (input) => {
-          if (input === 'CLEAR ALL DATABASE') {
+          if (input === 'CLEAR') {
             return true;
           }
           return 'Please type the exact confirmation text';
