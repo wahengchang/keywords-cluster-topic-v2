@@ -43,24 +43,58 @@ class BaseModel {
 
   create(data) {
     const keys = Object.keys(data);
-    const values = Object.values(data);
+    const values = Object.values(data).map(value => {
+      // Ensure SQLite-compatible values
+      if (value === undefined) return null;
+      if (typeof value === 'boolean') return value ? 1 : 0;
+      if (typeof value === 'object' && value !== null && !Buffer.isBuffer(value)) {
+        return JSON.stringify(value);
+      }
+      return value;
+    });
     const placeholders = keys.map(() => '?').join(', ');
     
     const query = `INSERT INTO ${this.tableName} (${keys.join(', ')}) VALUES (${placeholders})`;
-    const result = this.db.prepare(query).run(values);
     
-    return this.findById(result.lastInsertRowid);
+    try {
+      const result = this.db.prepare(query).run(values);
+      return this.findById(result.lastInsertRowid);
+    } catch (error) {
+      console.error(`Database error in ${this.tableName}:`, error.message);
+      console.error('Data:', { keys, values });
+      throw error;
+    }
   }
 
   update(id, data) {
     const keys = Object.keys(data);
-    const values = Object.values(data);
+    const values = Object.values(data).map(value => {
+      // Ensure SQLite-compatible values
+      if (value === undefined) return null;
+      if (typeof value === 'boolean') return value ? 1 : 0;
+      if (typeof value === 'object' && value !== null && !Buffer.isBuffer(value)) {
+        return JSON.stringify(value);
+      }
+      return value;
+    });
     const setClause = keys.map(key => `${key} = ?`).join(', ');
     
-    const query = `UPDATE ${this.tableName} SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-    this.db.prepare(query).run([...values, id]);
+    // Check if table has updated_at column
+    const hasUpdatedAt = this.hasColumn('updated_at');
+    const updateClause = hasUpdatedAt ? 
+      `${setClause}, updated_at = CURRENT_TIMESTAMP` : 
+      setClause;
     
-    return this.findById(id);
+    const query = `UPDATE ${this.tableName} SET ${updateClause} WHERE id = ?`;
+    
+    try {
+      this.db.prepare(query).run([...values, id]);
+      return this.findById(id);
+    } catch (error) {
+      console.error(`Database error in ${this.tableName}:`, error.message);
+      console.error('Update data:', { keys, values, id });
+      throw error;
+    }
   }
 
   delete(id) {
@@ -82,6 +116,17 @@ class BaseModel {
     
     const result = this.db.prepare(query).get(params);
     return result.count;
+  }
+
+  // Check if table has a specific column
+  hasColumn(columnName) {
+    try {
+      const query = `PRAGMA table_info(${this.tableName})`;
+      const columns = this.db.prepare(query).all();
+      return columns.some(col => col.name === columnName);
+    } catch (error) {
+      return false;
+    }
   }
 
   // Transaction support

@@ -99,33 +99,48 @@ class CreateCommand {
 
       Output.showProcessingHeader(projectDetails.target);
 
-      // Fetch and process keywords
-      Output.showProgress('Downloading SEMrush data');
+      // Process keywords through complete pipeline
+      Output.showProgress('Processing keywords through complete pipeline...');
+      console.log('  → Fetching SEMrush data');
+      console.log('  → Cleaning and deduplicating keywords');
+      console.log('  → Performing clustering analysis');
+      console.log('  → Calculating priority scores');
+      console.log('  → Saving processed results');
+      
       const result = await this.keywordService.processKeywordRequest(params);
-
-      // Automatically save to database
-      Output.showProgress('Inserting data to database');
-      const dbResult = await this.migration.migrateSingleCSV(result.filePath);
-      
-      // TODO: Run processing pipeline automatically
-      Output.showProgress('Running processing pipeline (TODO: Implementation needed)');
-      
-      // TODO: Generate FAQ titles for limited clusters
-      Output.showProgress('Generating FAQ titles (TODO: Implementation needed)');
       
       // Show results
       Output.showSuccess(`Project created successfully!`);
       Output.showSuccess(`SEMrush data saved: ${result.filePath}`);
-      Output.showSuccess(`Database project created: ${dbResult.project.name}`);
+      Output.showSuccess(`Pipeline processing completed successfully!`);
+      
+      // Display processing results
+      if (result.clusters && result.clusters.length > 0) {
+        console.log('\n🎯 Clustering Results:');
+        result.clusters.slice(0, 5).forEach((cluster, index) => {
+          console.log(`  ${index + 1}. ${cluster.cluster_name || `Cluster ${cluster.id}`}`);
+          console.log(`     Keywords: ${cluster.keyword_count}, Volume: ${cluster.total_search_volume || 0}`);
+        });
+      }
+      
+      if (result.scoredKeywords && result.scoredKeywords.length > 0) {
+        console.log('\n⭐ Top Priority Keywords:');
+        result.scoredKeywords.slice(0, 5).forEach((keyword, index) => {
+          console.log(`  ${index + 1}. ${keyword.keyword || keyword.cleaned_keyword} (${keyword.priority_tier || 'unknown'})`);
+          console.log(`     Score: ${(keyword.priority_score || 0).toFixed(3)}, Volume: ${keyword.search_volume || 0}`);
+        });
+      }
+      
       Output.showSummary({
         'Method': result.method,
         'Target': result.target,
         'Database': result.database,
         'Keywords fetched': result.keywordCount,
-        'Database project': dbResult.project.name,
-        'Database keywords': dbResult.keywordCount,
-        'Pipeline status': 'TODO: Not implemented yet',
-        'FAQ generation': 'TODO: Not implemented yet'
+        'Keywords processed': result.processedKeywordCount,
+        'Clusters found': result.clusterCount,
+        'Duplicate groups': result.duplicateGroupCount,
+        'Pipeline status': '✅ Completed successfully',
+        'Database project': result.project.name
       });
 
     } catch (error) {
