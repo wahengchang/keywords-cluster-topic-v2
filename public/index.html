@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vue CDN Static Starter - Component Store Observer</title>
+  <title>Keywords Cluster - Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <link rel="stylesheet" href="css/main.css">
@@ -15,7 +15,7 @@
     <header id="app-header" class="h-14 bg-secondary border-b border-tertiary px-6 flex items-center justify-between">
       <!-- Left: Logo and title -->
       <div class="flex items-center gap-4">
-        <div class="text-lg font-semibold">Static Starter</div>
+        <div class="text-lg font-semibold">Keywords Cluster Tool</div>
       </div>
       
       <!-- Right: Control buttons -->
@@ -24,58 +24,20 @@
         <button id="theme-toggle" class="relative w-12 h-6 bg-tertiary rounded-full transition-all duration-200 cursor-pointer">
           <div id="theme-slider" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200"></div>
         </button>
-        
-        <!-- Global config -->
-        <button id="config-btn" class="w-8 h-8 rounded-md hover:bg-secondary transition-colors flex items-center justify-center">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
-          </svg>
-        </button>
       </div>
     </header>
     
-    <!-- Main content -->
-    <main class="flex-1 flex min-h-0">
-      <!-- Left panel - Vue Component Mount Point -->
-      <section id="appLeft" class="w-1/2 bg-primary border-r border-tertiary flex flex-col">
-        <!-- Loading state (replaced by Vue component) -->
-        <div class="h-full flex items-center justify-center">
-          <div class="text-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-            <div class="text-gray-400 text-sm">Loading Left Panel...</div>
-          </div>
+    <!-- Main Dashboard Content -->
+    <main id="dashboard-container" class="flex-1 overflow-hidden">
+      <!-- Loading state (replaced by Vue component) -->
+      <div class="h-full flex items-center justify-center">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-green mx-auto mb-4"></div>
+          <div class="text-lg text-primary mb-2">Loading Dashboard...</div>
+          <div class="text-secondary text-sm">Fetching your keyword projects</div>
         </div>
-      </section>
-      
-      <!-- Divider -->
-      <div id="divider" class="w-px bg-gray-700 cursor-col-resize hover:bg-gray-500 transition-colors"></div>
-      
-      <!-- Right panel area -->
-      <section id="appRight" class="w-1/2 bg-primary flex flex-col">
-        <!-- Result Config Bar -->
-        <div id="appResultConfigBar" class="bg-secondary border-b border-tertiary">
-          <!-- Loading state (replaced by Vue component) -->
-          <div class="h-12 flex items-center justify-center">
-            <div class="text-center">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mx-auto mb-1"></div>
-              <div class="text-gray-400 text-xs">Loading Config...</div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Result Display Area -->
-        <div id="appResultDisplay" class="flex-1 bg-primary">
-          <!-- Loading state (replaced by Vue component) -->
-          <div class="h-full flex items-center justify-center">
-            <div class="text-center">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
-              <div class="text-gray-400 text-sm">Loading Result Display...</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </main>
-    
     
     <!-- Footer status bar -->
     <footer class="h-8 bg-secondary border-t border-tertiary px-4 flex items-center text-sm text-secondary">
@@ -83,21 +45,17 @@
     </footer>
   </div>
   
-  <!-- Scripts - Vue Component Store Observer Architecture -->
+  <!-- Scripts -->
   <!-- Global Store (must load first) -->
   <script type="module" src="js/store.js"></script>
   
   <!-- Theme Handler -->
   <script src="js/theme-handler.js"></script>
   
-  <!-- Panel Resize Handler -->
-  <script src="js/panel-resize-handler.js"></script>
+  <!-- API Client -->
+  <script type="module" src="js/api/client.js"></script>
   
-  <!-- Vue Components -->
-  <script type="module" src="js/components/left-input/container.js"></script>
-  <script type="module" src="js/components/right-config-bar.js"></script>
-  <!-- Result Display Component (separated) -->
-  <script type="module" src="js/components/right-display/container.js"></script>
-  <script type="module" src="js/components/top-config-bar.js"></script>
+  <!-- Dashboard Components -->
+  <script type="module" src="js/components/dashboard/container.js"></script>
 </body>
 </html>

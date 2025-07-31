@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keywords - Project</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body class="bg-primary text-primary">
+  <div id="app" class="h-screen flex flex-col">
+    <!-- Header -->
+    <header id="app-header" class="h-14 bg-secondary border-b border-tertiary px-6 flex items-center justify-between">
+      <!-- Left: Logo and navigation -->
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-lg font-semibold hover:text-accent-green transition-colors">
+          Keywords Cluster Tool
+        </a>
+        <nav class="text-sm text-secondary">
+          <a href="/" class="hover:text-primary transition-colors">Dashboard</a>
+          <span class="mx-2">›</span>
+          <span id="project-name-breadcrumb">Project</span>
+        </nav>
+      </div>
+      
+      <!-- Right: Control buttons -->
+      <div class="flex items-center gap-2">
+        <!-- Dark mode toggle -->
+        <button id="theme-toggle" class="relative w-12 h-6 bg-tertiary rounded-full transition-all duration-200 cursor-pointer">
+          <div id="theme-slider" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200"></div>
+        </button>
+      </div>
+    </header>
+    
+    <!-- Main content -->
+    <main class="flex-1 flex min-h-0">
+      <!-- Left panel - Filters -->
+      <aside id="filters-panel" class="w-80 bg-secondary border-r border-tertiary">
+        <!-- Loading state (replaced by Vue component) -->
+        <div class="h-full flex items-center justify-center">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+            <div class="text-gray-400 text-sm">Loading Filters...</div>
+          </div>
+        </div>
+      </aside>
+      
+      <!-- Right panel - Keywords Display -->
+      <section id="keywords-display" class="flex-1 bg-primary">
+        <!-- Loading state (replaced by Vue component) -->
+        <div class="h-full flex items-center justify-center">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-green mx-auto mb-4"></div>
+            <div class="text-lg text-primary mb-2">Loading Keywords...</div>
+            <div class="text-secondary text-sm">Fetching project keywords</div>
+          </div>
+        </div>
+      </section>
+    </main>
+    
+    <!-- Footer status bar -->
+    <footer class="h-8 bg-secondary border-t border-tertiary px-4 flex items-center text-sm text-secondary">
+      <span id="status-text">Ready</span>
+    </footer>
+  </div>
+  
+  <!-- Keyword Detail Modal -->
+  <div id="keyword-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-primary border border-tertiary rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-semibold text-primary">Keyword Details</h3>
+          <button id="close-modal" class="text-secondary hover:text-primary">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div id="modal-content">
+          <!-- Modal content will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <!-- Global Store (must load first) -->
+  <script type="module" src="js/store.js"></script>
+  
+  <!-- Theme Handler -->
+  <script src="js/theme-handler.js"></script>
+  
+  <!-- API Client -->
+  <script type="module" src="js/api/client.js"></script>
+  
+  <!-- Components -->
+  <script type="module" src="js/components/filters-panel/container.js"></script>
+  <script type="module" src="js/components/keywords-display/container.js"></script>
+  
+  <!-- Page Logic -->
+  <script type="module">
+    // Extract project ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('id');
+    
+    if (!projectId) {
+      alert('No project ID specified');
+      window.location.href = '/';
+    }
+    
+    // Load project data when page loads
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        console.log('Loading project page for ID:', projectId);
+        
+        // Load dashboard first to get project info
+        console.log('Loading dashboard...');
+        await AppStore.loadDashboard();
+        
+        // Find current project
+        const project = AppStore.data.projects.find(p => p.id == projectId);
+        if (project) {
+          console.log('Project found:', project);
+          document.getElementById('project-name-breadcrumb').textContent = project.name;
+          document.title = `Keywords - ${project.name}`;
+        } else {
+          console.warn('Project not found for ID:', projectId);
+          document.getElementById('project-name-breadcrumb').textContent = `Project ${projectId}`;
+        }
+        
+        // Load keywords for this project
+        console.log('Loading keywords...');
+        await AppStore.loadKeywords(projectId);
+        
+        // Update status
+        const keywordCount = AppStore.data.keywords?.length || 0;
+        const filteredCount = AppStore.data.filteredKeywords?.length || 0;
+        document.getElementById('status-text').textContent = 
+          `Loaded ${keywordCount} keywords (${filteredCount} filtered)`;
+        
+        console.log('Project page loaded successfully');
+          
+      } catch (error) {
+        console.error('Failed to load project:', error);
+        document.getElementById('status-text').textContent = 'Error loading project: ' + error.message;
+      }
+    });
+    
+    // Modal handling
+    const modal = document.getElementById('keyword-modal');
+    const closeModal = document.getElementById('close-modal');
+    
+    closeModal.addEventListener('click', () => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    });
+    
+    // Close modal on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    });
+    
+    // Global function to show keyword modal
+    window.showKeywordModal = (keyword) => {
+      const modalContent = document.getElementById('modal-content');
+      modalContent.innerHTML = `
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-secondary mb-1">Keyword</label>
+              <div class="text-lg font-semibold text-primary">${keyword.keyword}</div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-secondary mb-1">Search Volume</label>
+              <div class="text-lg font-semibold text-accent-green">${keyword.search_volume.toLocaleString()}</div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-secondary mb-1">KD Score</label>
+              <div class="text-lg font-semibold ${keyword.kd <= 30 ? 'text-green-500' : keyword.kd <= 60 ? 'text-yellow-500' : 'text-red-500'}">${keyword.kd}</div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-secondary mb-1">Competition</label>
+              <div class="text-lg font-semibold text-primary">${keyword.competition != null && !isNaN(keyword.competition) ? (parseFloat(keyword.competition) * 100).toFixed(0) : '0'}%</div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-secondary mb-1">CPC</label>
+              <div class="text-lg font-semibold text-primary">$${keyword.cpc != null && !isNaN(keyword.cpc) ? parseFloat(keyword.cpc).toFixed(2) : '0.00'}</div>
+            </div>
+          </div>
+          
+          ${keyword.cluster_name ? `
+          <div>
+            <label class="block text-sm font-medium text-secondary mb-1">Cluster</label>
+            <div class="text-primary">${keyword.cluster_name}</div>
+          </div>
+          ` : ''}
+          
+          ${keyword.faq_title ? `
+          <div>
+            <label class="block text-sm font-medium text-secondary mb-1">FAQ Title</label>
+            <div class="text-primary bg-secondary p-3 rounded">${keyword.faq_title}</div>
+          </div>
+          ` : ''}
+        </div>
+      `;
+      
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    };
+  </script>
+</body>
+</html>

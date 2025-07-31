@@ -57,6 +57,35 @@ window.AppStore = (function() {
         currentTheme: localStorage.getItem('app-theme') || 'dark',
         panelRatio: parseInt(localStorage.getItem('panel-ratio')) || 50,
         
+        // Keywords cluster data
+        projects: [],
+        currentProject: null,
+        keywords: [],
+        filteredKeywords: [],
+        
+        // Dashboard stats
+        stats: {
+            total_projects: 0,
+            total_keywords: 0,
+            total_clusters: 0
+        },
+        
+        // Filter configuration
+        filters: {
+            search: '',
+            kdMin: 0,
+            kdMax: 100,
+            volumeMin: 0,
+            volumeMax: null,
+            competition: '',
+            hasFaq: null
+        },
+        
+        // Sort configuration
+        sort: {
+            field: 'search_volume',
+            order: 'desc'
+        },
         
         // Component-specific state
         leftPanelState: {
@@ -72,6 +101,8 @@ window.AppStore = (function() {
         
         // Global UI state
         notifications: [],
+        loading: false,
+        error: null,
         
         // Configuration options
         config: {
@@ -207,6 +238,143 @@ window.AppStore = (function() {
                 
             } catch (e) {
                 console.warn('Failed to load from localStorage:', e);
+            }
+        },
+
+        // Keywords Cluster Management Methods
+        async loadDashboard() {
+            reactiveData.loading = true;
+            reactiveData.error = null;
+            try {
+                // Import API client
+                const { APIClient } = await import('./api/client.js');
+                const result = await APIClient.loadDashboard();
+                reactiveData.projects = result.projects;
+                reactiveData.stats = result.stats;
+            } catch (error) {
+                reactiveData.error = error.message;
+                console.error('Failed to load dashboard:', error);
+            } finally {
+                reactiveData.loading = false;
+            }
+        },
+
+        async loadKeywords(projectId) {
+            console.log('Loading keywords for project:', projectId);
+            reactiveData.loading = true;
+            reactiveData.error = null;
+            try {
+                // Import API client
+                const { APIClient } = await import('./api/client.js');
+                console.log('API client loaded, calling loadKeywords...');
+                const result = await APIClient.loadKeywords(projectId);
+                console.log('Keywords loaded:', result);
+                reactiveData.keywords = result.keywords;
+                reactiveData.currentProject = reactiveData.projects.find(p => p.id == projectId);
+                console.log('Current project set:', reactiveData.currentProject);
+                this.applyFilters();
+            } catch (error) {
+                reactiveData.error = error.message;
+                console.error('Failed to load keywords:', error);
+                // Try fallback mock data
+                console.log('Using fallback mock data...');
+                const { APIClient } = await import('./api/client.js');
+                const mockData = APIClient.getMockKeywordsData();
+                reactiveData.keywords = mockData.keywords;
+                this.applyFilters();
+            } finally {
+                reactiveData.loading = false;
+            }
+        },
+
+        updateFilters(newFilters) {
+            reactiveData.filters = { ...reactiveData.filters, ...newFilters };
+            this.applyFilters();
+        },
+
+        updateSort(field, order) {
+            reactiveData.sort = { field, order };
+            this.applyFilters();
+        },
+
+        applyFilters() {
+            // Ensure we have keywords to filter
+            if (!reactiveData.keywords || reactiveData.keywords.length === 0) {
+                reactiveData.filteredKeywords = [];
+                return;
+            }
+            
+            let filtered = [...reactiveData.keywords];
+            const filters = reactiveData.filters;
+            
+            console.log('Applying filters to', filtered.length, 'keywords');
+            
+            // Apply text search
+            if (filters.search) {
+                const search = filters.search.toLowerCase();
+                filtered = filtered.filter(k => 
+                    k.keyword && k.keyword.toLowerCase().includes(search)
+                );
+            }
+            
+            // Apply KD range
+            filtered = filtered.filter(k => 
+                (k.kd || 0) >= filters.kdMin && (k.kd || 0) <= filters.kdMax
+            );
+            
+            // Apply volume range
+            if (filters.volumeMax) {
+                filtered = filtered.filter(k => 
+                    (k.search_volume || 0) >= filters.volumeMin && 
+                    (k.search_volume || 0) <= filters.volumeMax
+                );
+            } else if (filters.volumeMin > 0) {
+                filtered = filtered.filter(k => 
+                    (k.search_volume || 0) >= filters.volumeMin
+                );
+            }
+            
+            // Apply competition filter
+            if (filters.competition) {
+                filtered = filtered.filter(k => 
+                    this.getCompetitionLevel(k.competition || 0) === filters.competition
+                );
+            }
+            
+            // Apply FAQ filter
+            if (filters.hasFaq !== null) {
+                filtered = filtered.filter(k => 
+                    filters.hasFaq ? k.faq_title : !k.faq_title
+                );
+            }
+            
+            // Apply sorting
+            filtered.sort((a, b) => {
+                const field = reactiveData.sort.field;
+                const order = reactiveData.sort.order;
+                const aVal = a[field] || 0;
+                const bVal = b[field] || 0;
+                const modifier = order === 'desc' ? -1 : 1;
+                return (aVal > bVal ? 1 : -1) * modifier;
+            });
+            
+            console.log('Filtered to', filtered.length, 'keywords');
+            reactiveData.filteredKeywords = filtered;
+        },
+
+        getCompetitionLevel(value) {
+            if (value < 0.33) return 'Low';
+            if (value < 0.66) return 'Medium';
+            return 'High';
+        },
+
+        async exportCSV(projectId) {
+            try {
+                const { APIClient } = await import('./api/client.js');
+                await APIClient.exportCSV(projectId);
+            } catch (error) {
+                reactiveData.error = error.message;
+                console.error('Failed to export CSV:', error);
             }
         },
 
