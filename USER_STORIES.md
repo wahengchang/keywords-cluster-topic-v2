@@ -1,9 +1,9 @@
 # User Stories - Keywords Cluster Topic Automation V2
 
 ## Document Information
-- **Version**: 1.1.0
-- **Date**: 2025-07-29
-- **Project**: Personal keyword research tool with database management
+- **Version**: 1.2.0
+- **Date**: 2025-07-31
+- **Project**: Personal keyword research tool with database management and web interface
 - **Format**: Simple, lean user stories for single developer
 
 ---
@@ -201,3 +201,49 @@
 - ✅ CSV backup files in /output/ directory remain untouched
 
 **Interactive Flow:** Launch CLI, select "Database Management", choose "🚨 Clear entire database", review deletion summary, confirm understanding, type exact confirmation phrase, final confirmation, complete database wipe
+
+---
+
+## Epic 4: Web Interface 🌐
+
+### US-013: Access Web Dashboard
+**As a user, I want to access a web dashboard so that I can manage projects through a browser interface.**
+
+**Acceptance Criteria:**
+- ✅ I can access the web interface at http://localhost:3000
+- ✅ Dashboard displays all my projects in card format
+- ✅ I can see project status, keyword counts, and last processed dates
+- ✅ Interface is responsive and works on different screen sizes
+- ✅ Navigation between dashboard and project details is intuitive
+
+**Interactive Flow:** Open browser, navigate to localhost:3000, view project cards, click on projects for details
+
+---
+
+### US-014: View Project Details in Web Interface
+**As a user, I want to view detailed project information in the web interface so that I can analyze keywords and data.**
+
+**Acceptance Criteria:**
+- ✅ I can click on project cards to view detailed information
+- ✅ Project details page shows keywords in a filterable table
+- ✅ I can filter keywords by search volume, competition, and other metrics
+- ✅ Keywords are displayed with all relevant metadata (position, CPC, traffic %)
+- ✅ Page loads quickly even with large keyword datasets
+- ✅ I can navigate back to dashboard easily
+
+**Interactive Flow:** From dashboard, click project card → view project details → filter keywords → analyze data → return to dashboard
+
+---
+
+### US-015: Filter and Search Keywords
+**As a user, I want to filter and search keywords in the web interface so that I can quickly find relevant data.**
+
+**Acceptance Criteria:**
+- ✅ I can filter keywords by minimum search volume
+- ✅ I can filter keywords by maximum competition level
+- ✅ I can search keywords by text content
+- ✅ Filters update the table in real-time
+- ✅ Filter state is maintained during navigation
+- ✅ I can clear all filters to see full dataset
+
+**Interactive Flow:** On project details page, use filter panel → adjust search volume → adjust competition → enter search text → view filtered results → clear filters if needed
