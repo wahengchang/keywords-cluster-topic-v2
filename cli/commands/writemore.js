@@ -76,7 +76,7 @@ class WriteMoreCommand {
 
   async selectProject() {
     // Get all active projects
-    const projects = await this.projectModel.getAllProjects({ status: 'active' });
+    const projects = this.projectModel.findAll({ status: 'active' });
     
     if (!projects || projects.length === 0) {
       Output.showWarning('No active projects found.');
@@ -103,8 +103,8 @@ class WriteMoreCommand {
 
   async loadClustersWithCounts(projectId) {
     try {
-      // Get clusters for this project
-      const clusters = await this.clusterModel.getClustersByProject(projectId);
+      // Get clusters for this project (latest run)
+      const clusters = this.clusterModel.findAll({ project_id: projectId });
       
       if (!clusters || clusters.length === 0) {
         return [];
