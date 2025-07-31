@@ -6,7 +6,25 @@
       "Bash(npm install:*)",
       "Bash(npm cache clean:*)",
       "Bash(mkdir:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(node:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(node:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh issue view:*)",
+      "Bash(ls:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(mv:*)",
+      "Bash(sqlite3:*)",
+      "Bash(source:*)",
+      "Bash(npm start)",
+      "Bash(find:*)",
+      "Bash(timeout:*)",
+      "Bash(npm test)",
+      "Bash(git merge:*)"
     ],
     "deny": []
   }
