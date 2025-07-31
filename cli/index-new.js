@@ -3,6 +3,7 @@
 const { CreateCommand } = require('./commands/create');
 const { RescrapeCommand } = require('./commands/rescrape');
 const { DatabaseCommand } = require('./commands/database');
+const { WriteMoreCommand } = require('./commands/writemore');
 const { Output } = require('./utils/output');
 const prompts = require('prompts');
 
@@ -18,7 +19,7 @@ async function main() {
       { title: 'Create New Project (Domain/Subfolder)', value: 'create' },
       { title: 'Rescrape Existing Project', value: 'rescrape' },
       { title: 'Database Management', value: 'database' },
-      { title: 'Generate More Content (Coming Soon)', value: 'writemore', disabled: true },
+      { title: 'Generate More Content', value: 'writemore' },
       { title: 'Cross-Project Analysis (Coming Soon)', value: 'analyze', disabled: true }
     ]
   });
@@ -37,6 +38,9 @@ async function main() {
       await databaseCommand.execute();
       break;
     case 'writemore':
+      const writeMoreCommand = new WriteMoreCommand();
+      await writeMoreCommand.execute();
+      break;
     case 'analyze':
       Output.showInfo('This feature is coming soon!');
       break;

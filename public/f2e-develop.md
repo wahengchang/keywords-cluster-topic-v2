@@ -4,80 +4,108 @@
 
 Follow these 4 steps to build the keywords cluster visualization interface:
 
-### 1. Design the Final Display (Keywords Dashboard)
-**Start with the end goal** - what should users see as the main interface?
+### 1. Design the Final Display (Right Panel/Main Content)
+**Start with the end goal** - what should users see as output?
 
 ```javascript
-// Example: Keywords dashboard output
-const dashboardSpec = {
-  projects: [
+// Example: Keywords data display
+const keywordsOutputSpec = {
+  keywords: [
     {
       id: 1,
-      name: "example.com",
-      keyword_count: 2341,
-      total_clusters: 45,
-      last_processed: "2025-07-31T10:30:00Z"
+      keyword: "react components",
+      search_volume: 8100,
+      kd: 25,
+      competition: 0.45,
+      cpc: 2.34,
+      cluster_name: "React Development",
+      faq_title: "How to build React components?"
     }
   ],
   stats: {
-    total_projects: 12,
-    total_keywords: 45230,
-    total_clusters: 567
+    total: 1204,
+    filtered: 156,
+    clusters: 12
   }
 };
 ```
 
-**Create the presentational components first:**
+**Create the presentational component first:**
 ```javascript
-// /js/components/dashboard/project-card.js
-export const ProjectCardComponent = {
+// /js/components/keywords-display/keywords-table.js
+export const KeywordsTableComponent = {
   props: {
-    project: { type: Object, required: true }
+    keywords: { type: Array, default: () => [] },
+    loading: { type: Boolean, default: false }
   },
   
   template: `
-    <div class="project-card" @click="$emit('select', project.id)">
-      <div class="project-header">
-        <h3 class="project-name">{{ project.name }}</h3>
-        <span class="project-type">{{ project.project_type }}</span>
-      </div>
-      <div class="project-stats">
-        <div class="stat">
-          <span class="stat-value">{{ formatNumber(project.keyword_count) }}</span>
-          <span class="stat-label">keywords</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value">{{ project.total_clusters }}</span>
-          <span class="stat-label">clusters</span>
-        </div>
-      </div>
-      <div class="project-meta">
-        <span class="last-processed">Updated: {{ formatDate(project.last_processed) }}</span>
-      </div>
+    <div class="keywords-table-container">
+      <div v-if="loading" class="loading">Loading keywords...</div>
+      <table v-else class="keywords-table">
+        <thead>
+          <tr>
+            <th @click="$emit('sort', 'keyword')">Keyword</th>
+            <th @click="$emit('sort', 'search_volume')">Volume</th>
+            <th @click="$emit('sort', 'kd')">KD</th>
+            <th @click="$emit('sort', 'competition')">Competition</th>
+            <th @click="$emit('sort', 'cpc')">CPC</th>
+            <th>Cluster</th>
+            <th>FAQ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="keyword in keywords" :key="keyword.id" class="keyword-row">
+            <td class="keyword-text">{{ keyword.keyword }}</td>
+            <td class="volume-cell">
+              <div class="volume-bar" :style="getVolumeBarStyle(keyword.search_volume)"></div>
+              <span>{{ keyword.search_volume.toLocaleString() }}</span>
+            </td>
+            <td class="kd-cell">
+              <span :class="getKDClass(keyword.kd)">{{ keyword.kd }}</span>
+            </td>
+            <td>{{ getCompetitionLevel(keyword.competition) }}</td>
+            <td>\${{ keyword.cpc.toFixed(2) }}</td>
+            <td>{{ keyword.cluster_name || '-' }}</td>
+            <td>{{ keyword.faq_title ? '✓' : '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   `,
   
   methods: {
-    formatNumber(num) {
-      return num.toLocaleString();
+    getVolumeBarStyle(volume) {
+      const maxVolume = Math.max(...this.keywords.map(k => k.search_volume));
+      const width = (volume / maxVolume) * 100;
+      return { width: width + '%' };
     },
-    formatDate(dateString) {
-      return new Date(dateString).toLocaleDateString();
+    
+    getKDClass(kd) {
+      if (kd <= 30) return 'kd-easy';
+      if (kd <= 60) return 'kd-medium'; 
+      return 'kd-hard';
+    },
+    
+    getCompetitionLevel(value) {
+      if (value < 0.33) return 'Low';
+      if (value < 0.66) return 'Medium';
+      return 'High';
     }
   }
 };
 ```
 
 ### 2. Think About the Data Flow
-**Work backwards** - what data do you need to generate that dashboard?
+**Work backwards** - what data do you need to generate that output?
 
 ```javascript
 // Data requirements analysis:
 const dataFlow = {
-  input: "API calls to /api/data and /api/keywords/:id",     // What API provides
-  processing: "client-side filtering and sorting logic",     // How to transform it
-  output: "filtered keywords table and project dashboard",   // What display needs
-  config: "search filters, sort options, project selection" // User preferences
+  input: "project selection + filters",        // What user provides
+  processing: "API calls + client filtering",  // How to transform it
+  output: "filtered keywords table",           // What display needs
+  config: "sort + filter preferences"         // User preferences
 };
 ```
 
@@ -85,27 +113,26 @@ const dataFlow = {
 ```javascript
 // /js/store.js - Add to reactive data
 const reactiveData = Vue.reactive({
-  // Dashboard data
+  // Project data
   projects: [],
-  stats: {},
   currentProject: null,
   
-  // Keywords data (loaded when project selected)
+  // Keywords data
   keywords: [],
   filteredKeywords: [],
   
-  // User interface state
+  // Filter configuration
   filters: {
     search: '',
     kdMin: 0,
     kdMax: 100,
     volumeMin: 0,
     volumeMax: null,
-    competition: 'all',
-    hasFaq: null,
-    cluster: 'all'
+    competition: '',
+    hasFaq: null
   },
   
+  // Sort configuration
   sort: {
     field: 'search_volume',
     order: 'desc'
@@ -113,7 +140,7 @@ const reactiveData = Vue.reactive({
   
   // UI state
   loading: false,
-  currentView: 'dashboard', // 'dashboard' or 'keywords'
+  error: null,
   
   // ... existing store data
 });
@@ -123,105 +150,104 @@ const reactiveData = Vue.reactive({
 **Connect display to store data** with processing logic in container:
 
 ```javascript
-// /js/components/dashboard/container.js
+// /js/components/keywords-display/container.js
 import { AppStore } from '../../store.js';
-import { ProjectCardComponent } from './project-card.js';
+import { KeywordsTableComponent } from './keywords-table.js';
 
-const DashboardContainer = {
+const KeywordsDisplayContainer = {
   computed: {
     store() { return AppStore; },
     
-    // Process projects for display
-    displayProjects() {
-      return this.store.data.projects.filter(project => {
-        const searchTerm = this.projectSearchTerm.toLowerCase();
-        return !searchTerm || 
-               project.name.toLowerCase().includes(searchTerm) ||
-               project.domain?.toLowerCase().includes(searchTerm);
+    // Business logic - process and filter keywords
+    processedKeywords() {
+      let filtered = [...this.store.data.keywords];
+      const filters = this.store.data.filters;
+      
+      // Apply text search
+      if (filters.search) {
+        const search = filters.search.toLowerCase();
+        filtered = filtered.filter(k => 
+          k.keyword.toLowerCase().includes(search)
+        );
+      }
+      
+      // Apply KD range
+      filtered = filtered.filter(k => 
+        k.kd >= filters.kdMin && k.kd <= filters.kdMax
+      );
+      
+      // Apply volume range
+      if (filters.volumeMax) {
+        filtered = filtered.filter(k => 
+          k.search_volume >= filters.volumeMin && 
+          k.search_volume <= filters.volumeMax
+        );
+      }
+      
+      // Apply competition filter
+      if (filters.competition) {
+        filtered = filtered.filter(k => 
+          this.getCompetitionLevel(k.competition) === filters.competition
+        );
+      }
+      
+      // Apply FAQ filter
+      if (filters.hasFaq !== null) {
+        filtered = filtered.filter(k => 
+          filters.hasFaq ? k.faq_title : !k.faq_title
+        );
+      }
+      
+      // Apply sorting
+      filtered.sort((a, b) => {
+        const field = this.store.data.sort.field;
+        const order = this.store.data.sort.order;
+        const aVal = a[field];
+        const bVal = b[field];
+        const modifier = order === 'desc' ? -1 : 1;
+        return (aVal > bVal ? 1 : -1) * modifier;
       });
+      
+      return filtered;
     },
     
-    // Dashboard stats
-    dashboardStats() {
-      return this.store.data.stats;
+    loading() {
+      return this.store.data.loading;
     }
-  },
-  
-  data() {
-    return {
-      projectSearchTerm: ''
-    };
   },
   
   methods: {
-    async loadDashboard() {
-      this.store.setLoading(true);
-      try {
-        await this.store.loadDashboardData();
-      } catch (error) {
-        console.error('Failed to load dashboard:', error);
-      } finally {
-        this.store.setLoading(false);
-      }
+    getCompetitionLevel(value) {
+      if (value < 0.33) return 'Low';
+      if (value < 0.66) return 'Medium';
+      return 'High';
     },
     
-    selectProject(projectId) {
-      this.store.setCurrentView('keywords');
-      this.store.loadProjectKeywords(projectId);
+    handleSort(field) {
+      const currentSort = this.store.data.sort;
+      const order = currentSort.field === field && currentSort.order === 'desc' ? 'asc' : 'desc';
+      this.store.updateSort(field, order);
     }
   },
   
-  components: { ProjectCard: ProjectCardComponent },
+  components: { KeywordsTable: KeywordsTableComponent },
   
   template: `
-    <div class="dashboard-container">
-      <div class="stats-overview">
-        <div class="stat-card">
-          <div class="stat-value">{{ dashboardStats.total_projects }}</div>
-          <div class="stat-label">Total Projects</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ formatNumber(dashboardStats.total_keywords) }}</div>
-          <div class="stat-label">Total Keywords</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ dashboardStats.total_clusters }}</div>
-          <div class="stat-label">Total Clusters</div>
-        </div>
-      </div>
-      
-      <div class="search-bar">
-        <input 
-          v-model="projectSearchTerm" 
-          type="text" 
-          placeholder="Search projects..."
-          class="project-search"
-        />
-      </div>
-      
-      <div class="projects-grid">
-        <ProjectCard 
-          v-for="project in displayProjects" 
-          :key="project.id"
-          :project="project"
-          @select="selectProject"
-        />
-      </div>
-    </div>
-  `,
-  
-  created() {
-    this.loadDashboard();
-  }
+    <KeywordsTable 
+      :keywords="processedKeywords" 
+      :loading="loading"
+      @sort="handleSort"
+    />
+  `
 };
 ```
 
-### 4. Design Input & Filter Components
-**Build the keywords filtering interface:**
+### 4. Design Input & Config Components
+**Now you know exactly what data you need to collect:**
 
 ```javascript
-// /js/components/keywords/keyword-filters.js
-export const KeywordFiltersComponent = {
+// /js/components/filters-panel/filters.js
+export const FiltersComponent = {
   props: {
     filters: { type: Object, required: true }
   },
@@ -264,38 +290,39 @@ export const KeywordFiltersComponent = {
       
       <div class="filter-group">
         <label>Search Volume</label>
-        <div class="range-inputs">
-          <input 
-            type="number" 
-            placeholder="Min" 
-            :value="filters.volumeMin"
-            @input="updateFilter('volumeMin', parseInt($event.target.value) || 0)"
-          />
-          <input 
-            type="number" 
-            placeholder="Max" 
-            :value="filters.volumeMax"
-            @input="updateFilter('volumeMax', parseInt($event.target.value) || null)"
-          />
-        </div>
+        <input 
+          type="number" 
+          :value="filters.volumeMin"
+          @input="updateFilter('volumeMin', parseInt($event.target.value))"
+          placeholder="Min volume"
+        />
+        <input 
+          type="number" 
+          :value="filters.volumeMax"
+          @input="updateFilter('volumeMax', parseInt($event.target.value))"
+          placeholder="Max volume"
+        />
       </div>
       
       <div class="filter-group">
         <label>Competition</label>
-        <select :value="filters.competition" @change="updateFilter('competition', $event.target.value)">
-          <option value="all">All Levels</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
+        <select 
+          :value="filters.competition"
+          @change="updateFilter('competition', $event.target.value)"
+        >
+          <option value="">All Levels</option>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
         </select>
       </div>
       
       <div class="filter-group">
-        <label>
+        <label class="checkbox-label">
           <input 
             type="checkbox" 
-            :checked="filters.hasFaq === true"
-            @change="updateFilter('hasFaq', $event.target.checked ? true : null)"
+            :checked="filters.hasFaq"
+            @change="updateFilter('hasFaq', $event.target.checked)"
           />
           Has FAQ Title
         </label>
@@ -319,248 +346,247 @@ export const KeywordFiltersComponent = {
         kdMax: 100,
         volumeMin: 0,
         volumeMax: null,
-        competition: 'all',
+        competition: '',
         hasFaq: null
       });
     }
   }
 };
+
+// /js/components/filters-panel/container.js
+import { AppStore } from '../../store.js';
+import { FiltersComponent } from './filters.js';
+
+const FiltersContainer = {
+  computed: {
+    store() { return AppStore; },
+    filters() { return this.store.data.filters; }
+  },
+  
+  methods: {
+    updateFilters(newFilters) {
+      this.store.updateFilters(newFilters);
+    }
+  },
+  
+  components: { Filters: FiltersComponent },
+  
+  template: `<Filters :filters="filters" @update-filters="updateFilters" />`
+};
 ```
 
 ## File Organization Pattern
 
-For the keywords cluster web interface, use this structure:
+For the keywords cluster web interface, create this structure:
 
 ```
 /js/components/
   /dashboard/
-    container.js        # Dashboard logic + store integration
-    project-card.js     # Project card presentation
-    stats-overview.js   # Stats display component
+    container.js          # Dashboard logic + project selection
+    project-cards.js      # Pure project cards presentation
+    stats-overview.js     # Statistics display
   
-  /keywords/
-    container.js        # Keywords page logic + store integration  
-    keywords-table.js   # Keywords table presentation
-    keyword-filters.js  # Filter panel component
-    keyword-row.js      # Individual keyword row component
+  /keywords-display/
+    container.js          # Keywords processing + store integration  
+    keywords-table.js     # Pure keywords table presentation
+    keyword-modal.js      # Keyword detail modal
   
-  /shared/
-    loading.js          # Loading spinner component
-    modal.js            # Keyword detail modal
+  /filters-panel/
+    container.js          # Filter logic + store integration
+    filters.js            # Pure filter controls presentation
   
-  api-client.js         # API integration layer
+  /project-header/
+    container.js          # Project info + navigation
+    breadcrumb.js         # Navigation breadcrumb
+    project-stats.js      # Project statistics
+  
+  config-bar.js           # Sort/export controls (optional)
 ```
-
-## Development Checklist
-
-### ✅ Step 1: Dashboard Design
-- [ ] Create project card component with stats display
-- [ ] Create stats overview component
-- [ ] Test with mock project data
-- [ ] Add project search functionality
-
-### ✅ Step 2: Keywords Data Flow  
-- [ ] Define API client for 3 endpoints (/api/data, /api/keywords/:id, /api/export/:id)
-- [ ] Plan client-side filtering logic for all filters
-- [ ] Update store schema for keywords and filters
-- [ ] Plan sorting logic (volume, KD, alphabetical)
-
-### ✅ Step 3: Store Integration
-- [ ] Add keywords data to reactive store
-- [ ] Create filtering methods in container
-- [ ] Connect keywords table to filtered data
-- [ ] Test real-time filter updates
-
-### ✅ Step 4: Keywords Interface
-- [ ] Create keywords table with sortable headers  
-- [ ] Create filter panel with all filter types
-- [ ] Add export CSV functionality
-- [ ] Create keyword detail modal
-- [ ] Test complete keyword exploration flow
 
 ## API Integration Pattern
 
+### Simple API Client
 ```javascript
-// /js/api-client.js - Simple API client for 3 endpoints
-class KeywordsAPI {
+// /js/api/client.js
+export class APIClient {
   static BASE_URL = '/api';
   
-  // Load all dashboard data at once
   static async loadDashboard() {
     const response = await fetch(`${this.BASE_URL}/data`);
     if (!response.ok) throw new Error('Failed to load dashboard');
     return response.json();
   }
   
-  // Load all keywords for a project at once (client-side filtering)
-  static async loadProjectKeywords(projectId) {
+  static async loadKeywords(projectId) {
     const response = await fetch(`${this.BASE_URL}/keywords/${projectId}`);
     if (!response.ok) throw new Error('Failed to load keywords');
     return response.json();
   }
   
-  // Export keywords as CSV download
-  static exportProjectCSV(projectId) {
+  static exportCSV(projectId) {
     window.location.href = `${this.BASE_URL}/export/${projectId}`;
   }
 }
 ```
 
-## Store Integration Pattern
-
+### Store Actions
 ```javascript
-// /js/store.js - Enhanced store methods
+// /js/store.js - Add methods
 const AppStore = {
   data: reactiveData,
   
-  // Dashboard methods
-  async loadDashboardData() {
-    const data = await KeywordsAPI.loadDashboard();
-    this.data.projects = data.projects;
-    this.data.stats = data.stats;
-  },
-  
-  // Keywords methods  
-  async loadProjectKeywords(projectId) {
+  async loadDashboard() {
     this.data.loading = true;
+    this.data.error = null;
     try {
-      const data = await KeywordsAPI.loadProjectKeywords(projectId);
-      this.data.keywords = data.keywords;
-      this.data.currentProject = this.data.projects.find(p => p.id == projectId);
-      this.applyFilters();
+      const result = await APIClient.loadDashboard();
+      this.data.projects = result.projects;
+      this.data.stats = result.stats;
+    } catch (error) {
+      this.data.error = error.message;
     } finally {
       this.data.loading = false;
     }
   },
   
-  // Client-side filtering (all processing in browser)
-  applyFilters() {
-    let filtered = [...this.data.keywords];
-    const f = this.data.filters;
-    
-    // Text search in keyword
-    if (f.search) {
-      const search = f.search.toLowerCase();
-      filtered = filtered.filter(k => 
-        k.keyword.toLowerCase().includes(search)
-      );
+  async loadKeywords(projectId) {
+    this.data.loading = true;
+    this.data.error = null;
+    try {
+      const result = await APIClient.loadKeywords(projectId);
+      this.data.keywords = result.keywords;
+      this.data.currentProject = this.data.projects.find(p => p.id == projectId);
+      this.applyFilters();
+    } catch (error) {
+      this.data.error = error.message;
+    } finally {
+      this.data.loading = false;
     }
-    
-    // KD range filter
-    filtered = filtered.filter(k => 
-      k.kd >= f.kdMin && k.kd <= f.kdMax
-    );
-    
-    // Volume range filter
-    if (f.volumeMax) {
-      filtered = filtered.filter(k => 
-        k.search_volume >= f.volumeMin && k.search_volume <= f.volumeMax
-      );
-    }
-    
-    // Competition level filter
-    if (f.competition !== 'all') {
-      filtered = filtered.filter(k => 
-        this.getCompetitionLevel(k.competition) === f.competition
-      );
-    }
-    
-    // FAQ filter
-    if (f.hasFaq !== null) {
-      filtered = filtered.filter(k => 
-        f.hasFaq ? k.faq_title : !k.faq_title
-      );
-    }
-    
-    // Sorting
-    filtered.sort((a, b) => {
-      const aVal = a[this.data.sort.field];
-      const bVal = b[this.data.sort.field];
-      const modifier = this.data.sort.order === 'desc' ? -1 : 1;
-      return (aVal > bVal ? 1 : -1) * modifier;
-    });
-    
-    this.data.filteredKeywords = filtered;
   },
   
-  // Update filters and re-apply
   updateFilters(newFilters) {
     this.data.filters = { ...this.data.filters, ...newFilters };
     this.applyFilters();
   },
   
-  // Update sort and re-apply
   updateSort(field, order) {
     this.data.sort = { field, order };
-    this.applyFilters();
+    this.applyFilters(); // Re-apply includes sorting
   },
   
-  // UI state methods
-  setCurrentView(view) {
-    this.data.currentView = view;
-  },
-  
-  setLoading(loading) {
-    this.data.loading = loading;
-  },
-  
-  // Helper methods
-  getCompetitionLevel(value) {
-    if (value < 0.33) return 'low';
-    if (value < 0.66) return 'medium';
-    return 'high';
+  applyFilters() {
+    // Filtering logic is handled in containers
+    // This triggers reactivity
   }
 };
 ```
 
+## Development Checklist
+
+### ✅ Step 1: Display Design
+- [ ] Define keywords output data structure
+- [ ] Create keywords table presentational component
+- [ ] Create project cards presentational component
+- [ ] Test with mock data from database schema
+
+### ✅ Step 2: Data Analysis  
+- [ ] Identify API endpoints needed (/data, /keywords/:id, /export/:id)
+- [ ] Define client-side filtering logic
+- [ ] Plan store schema for keywords, projects, filters
+- [ ] Map database fields to display requirements
+
+### ✅ Step 3: Store Integration
+- [ ] Add reactive data to store (keywords, filters, sort)
+- [ ] Create API client methods
+- [ ] Create processing methods in containers
+- [ ] Connect display to processed data
+- [ ] Test data flow with real database
+
+### ✅ Step 4: Input Components
+- [ ] Create filter presentational components  
+- [ ] Create filter container with store binding
+- [ ] Add project selection components
+- [ ] Add search and sort controls
+- [ ] Test complete user flow
+
 ## Common Patterns for Keywords Interface
 
-### Keywords Table Component
+### Dashboard Pattern
 ```javascript
-// Display: sortable table with KD color coding and volume bars
-// Data: filtered keywords with client-side sorting
-// Input: sort controls + pagination (virtual scrolling for large datasets)
+// Display: project cards with stats
+// Data: projects list with keyword counts
+// Input: project search + type filter
 ```
 
-### Filter Panel Component  
+### Keywords Table Pattern  
 ```javascript
-// Display: range sliders, dropdowns, checkboxes for all filter types
-// Data: current filter state with real-time updates
-// Input: filter controls that immediately update the table
+// Display: sortable table with volume bars, KD badges
+// Data: filtered keywords with metrics
+// Input: search box + range sliders + dropdowns
 ```
 
-### Project Selection Component
+### Export Pattern
 ```javascript
-// Display: project cards with stats and last updated info
-// Data: projects list with keyword counts and processing dates
-// Input: search field + project type filter
+// Display: download button
+// Data: current filtered results
+// Input: export format selection (CSV)
 ```
 
 ## Testing Your Interface
 
-1. **Start with dashboard**: Can you load and display project cards correctly?
-2. **Add project selection**: Does clicking a project load its keywords?
-3. **Connect filtering**: Do filter changes update the keywords table in real-time?
-4. **Test sorting**: Do column clicks sort the table correctly?
-5. **Verify export**: Does CSV export download the correct filtered data?
+1. **Start with dashboard**: Can you render projects from database correctly?
+2. **Add keywords loading**: Does project selection load keywords?
+3. **Connect filters**: Does filtering update the table in real-time?
+4. **Verify sorting**: Do column clicks change sort order?
+5. **Test export**: Does CSV download work with current filters?
 
-## Key Differences from Standard Vue Pattern
+## Database Integration Notes
 
-### Client-Side Heavy Processing
-- **Load once**: Fetch all project keywords at once, filter in browser
-- **No pagination API**: Use virtual scrolling for large keyword lists
-- **Real-time filtering**: All search, filter, sort happens instantly in JavaScript
+- **SQLite Database**: `./data/keywords-cluster.db`
+- **Key Tables**: projects, keywords, keyword_clusters, generated_content
+- **API Layer**: Single Express.js file at `/server.js`
+- **Models**: Use existing database connection from `/src/database/connection.js`
 
-### Simplified API Integration
-- **Only 3 API endpoints**: `/api/data`, `/api/keywords/:id`, `/api/export/:id`
-- **No write operations**: Pure read-only interface
-- **Direct CSV export**: Export endpoint returns file download
+## CSS Architecture
 
-### Performance Considerations
-- **Memory-based filtering**: All keywords loaded in browser memory
-- **Virtual scrolling**: Handle 10k+ keywords efficiently
-- **Debounced search**: Prevent excessive filter updates during typing
+```css
+/* Component-based styling */
+.keywords-table { /* Table layout */ }
+.kd-easy { background: #d4edda; color: #155724; }
+.kd-medium { background: #fff3cd; color: #856404; }
+.kd-hard { background: #f8d7da; color: #721c24; }
+
+.volume-bar { 
+  height: 4px; 
+  background: #007bff; 
+  border-radius: 2px; 
+}
+
+.project-card {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.project-card:hover {
+  transform: translateY(-2px);
+}
+```
+
+## Reference Architecture
+
+- **Container Components**: Handle API calls, filtering, sorting, store integration
+- **Presentational Components**: Pure UI rendering with props/emits  
+- **Store Pattern**: Centralized reactive state with Vue reactivity
+- **API Client**: Simple fetch-based client for 3 endpoints
+- **Client-side Processing**: All filtering/sorting happens in browser
 
 ---
 
-**Next Steps**: Follow this Vue.js container/presentational pattern to build the keywords cluster visualization interface! Focus on client-side processing and minimal API integration. 🚀
+**Next Steps**: Follow the 4-step process to build the keywords visualization interface! 🚀
+
+The interface focuses on:
+1. **Dashboard** → Quick project selection with stats
+2. **Keywords Table** → Sortable, filterable data exploration  
+3. **Real-time Filtering** → No server round-trips for search/filter
+4. **Export Functionality** → CSV download of filtered results
+
+This creates a fast, responsive read-only interface perfect for SEO keyword analysis workflows.

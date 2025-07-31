@@ -1,6 +1,6 @@
 // src/generators/faq-title-generator.js
 // FAQ title generation for keyword clusters
-const { chatgptStructuredArray } = require('../chatgpt');
+const { chatgptStructuredArray } = require('../chatgpt/index');
 
 class FAQTitleGenerator {
   constructor({ titlesPerCluster = 5, config = {} } = {}) {
