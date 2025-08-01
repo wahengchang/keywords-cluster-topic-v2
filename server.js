@@ -263,7 +263,23 @@ app.get('/api/debug/schema', (req, res) => {
   }
 });
 
+// Serve static files
 app.use(express.static('public'));
+
+// Route for project titles page
+app.get('/project/:projectId/titles', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'titles.html'));
+});
+
+// Route for project keywords page
+app.get('/project/:projectId', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'project.html'));
+});
+
+// Route for project keywords page with query params (legacy support)
+app.get('/project', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'project.html'));
+});
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

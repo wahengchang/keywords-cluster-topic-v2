@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAQ Titles - Project</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body class="bg-primary text-primary">
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="h-14 bg-secondary border-b border-tertiary px-6 flex items-center justify-between">
+      <!-- Left: Logo and navigation -->
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-lg font-semibold hover:text-accent-green transition-colors">
+          Keywords Cluster Tool
+        </a>
+        <nav class="text-sm text-secondary">
+          <a href="/" class="hover:text-primary transition-colors">Dashboard</a>
+          <span class="mx-2">›</span>
+          <span id="project-name-breadcrumb">Project</span>
+          <span class="mx-2">›</span>
+          <span>FAQ Titles</span>
+        </nav>
+      </div>
+      
+      <!-- Right: Control buttons -->
+      <div class="flex items-center gap-2">
+        <!-- Dark mode toggle -->
+        <button id="theme-toggle" class="relative w-12 h-6 bg-tertiary rounded-full transition-all duration-200 cursor-pointer">
+          <div id="theme-slider" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200"></div>
+        </button>
+      </div>
+    </header>
+    
+    <!-- Main content -->
+    <main class="flex-1 p-6">
+      <!-- Loading state -->
+      <div id="loading" class="text-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-green mx-auto mb-4"></div>
+        <div class="text-lg text-primary mb-2">Loading FAQ Titles...</div>
+        <div class="text-secondary text-sm">Fetching generated content</div>
+      </div>
+      
+      <!-- Project info -->
+      <div id="project-info" class="mb-6 hidden">
+        <h1 class="text-2xl font-bold text-primary mb-2">Generated FAQ Titles</h1>
+        <p class="text-secondary" id="project-subtitle">Loading...</p>
+      </div>
+      
+      <!-- No titles message -->
+      <div id="no-titles" class="text-center py-12 hidden">
+        <div class="text-6xl mb-4">📝</div>
+        <h2 class="text-xl font-semibold text-primary mb-2">No FAQ Titles Yet</h2>
+        <p class="text-secondary mb-4">This project doesn't have any generated FAQ titles.</p>
+        <p class="text-sm text-tertiary">Use the CLI command "Generate More Content" to create FAQ titles from your keyword clusters.</p>
+        <div class="mt-6">
+          <a href="/" class="px-4 py-2 bg-accent-green text-white rounded hover:bg-opacity-80 transition-colors">
+            ← Back to Dashboard
+          </a>
+        </div>
+      </div>
+      
+      <!-- Titles content -->
+      <div id="titles-content" class="hidden">
+        <div class="mb-4 flex justify-between items-center">
+          <div>
+            <span id="titles-count" class="text-sm text-secondary"></span>
+          </div>
+          <div class="space-x-2">
+            <a href="/" class="px-4 py-2 bg-secondary text-primary rounded hover:bg-tertiary transition-colors">
+              ← Dashboard
+            </a>
+            <button id="export-titles" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+              Export CSV
+            </button>
+          </div>
+        </div>
+        
+        <div id="clusters-container" class="space-y-6">
+          <!-- Clusters with titles will be rendered here -->
+        </div>
+      </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="h-8 bg-secondary border-t border-tertiary px-4 flex items-center text-sm text-secondary">
+      <span id="status-text">Ready</span>
+    </footer>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="js/theme-handler.js"></script>
+  
+  <script>
+    let currentProject = null;
+    let titlesData = null;
+    
+    // Extract project ID from URL
+    const pathParts = window.location.pathname.split('/');
+    const projectId = pathParts[2]; // /project/{id}/titles
+    
+    if (!projectId) {
+      alert('No project ID specified');
+      window.location.href = '/';
+    }
+    
+    // Load project and titles data
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        console.log('Loading titles for project:', projectId);
+        
+        // Load dashboard to get project info
+        const dashboardResponse = await fetch('/api/dashboard');
+        const dashboardData = await dashboardResponse.json();
+        
+        // Find current project
+        currentProject = dashboardData.projects.find(p => p.id == projectId);
+        if (currentProject) {
+          document.getElementById('project-name-breadcrumb').textContent = currentProject.name;
+          document.title = `FAQ Titles - ${currentProject.name}`;
+        }
+        
+        // Load generated content
+        const titlesResponse = await fetch(`/api/generated-content/${projectId}`);
+        if (!titlesResponse.ok) {
+          throw new Error(`Failed to load titles: ${titlesResponse.status}`);
+        }
+        
+        titlesData = await titlesResponse.json();
+        console.log('Titles data:', titlesData);
+        
+        // Hide loading
+        document.getElementById('loading').classList.add('hidden');
+        
+        if (titlesData.total_titles === 0) {
+          // Show no titles message
+          document.getElementById('no-titles').classList.remove('hidden');
+        } else {
+          // Show titles
+          displayTitles();
+        }
+        
+      } catch (error) {
+        console.error('Failed to load titles:', error);
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('status-text').textContent = 'Error: ' + error.message;
+        
+        // Show error message
+        document.body.innerHTML += `
+          <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded max-w-md">
+              <strong class="font-bold">Error loading titles:</strong>
+              <span class="block sm:inline"> ${error.message}</span>
+              <div class="mt-4">
+                <a href="/" class="text-blue-600 hover:text-blue-800">← Back to Dashboard</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    });
+    
+    function displayTitles() {
+      // Show project info
+      document.getElementById('project-info').classList.remove('hidden');
+      document.getElementById('project-subtitle').textContent = 
+        `${currentProject.name} - ${titlesData.total_titles} FAQ titles across ${titlesData.clusters_with_content} clusters`;
+      
+      // Show titles content
+      document.getElementById('titles-content').classList.remove('hidden');
+      document.getElementById('titles-count').textContent = 
+        `${titlesData.total_titles} titles total`;
+      
+      // Render clusters
+      const container = document.getElementById('clusters-container');
+      container.innerHTML = '';
+      
+      Object.entries(titlesData.by_cluster).forEach(([clusterName, clusterData]) => {
+        const clusterElement = createClusterSection(clusterName, clusterData);
+        container.appendChild(clusterElement);
+      });
+      
+      // Setup export button
+      document.getElementById('export-titles').addEventListener('click', exportTitles);
+    }
+    
+    function createClusterSection(clusterName, clusterData) {
+      const section = document.createElement('div');
+      section.className = 'bg-secondary rounded-lg p-6 border border-tertiary';
+      
+      section.innerHTML = `
+        <div class="mb-4">
+          <h3 class="text-xl font-semibold text-primary mb-2">${clusterName}</h3>
+          ${clusterData.cluster_description ? 
+            `<p class="text-sm text-secondary mb-2">${clusterData.cluster_description}</p>` : ''}
+          <p class="text-xs text-tertiary">${clusterData.titles.length} titles generated</p>
+        </div>
+        
+        <div class="space-y-3">
+          ${clusterData.titles.map(title => createTitleItem(title)).join('')}
+        </div>
+      `;
+      
+      return section;
+    }
+    
+    function createTitleItem(title) {
+      const approvedBadge = title.is_approved ? 
+        '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Approved</span>' : 
+        '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">Pending</span>';
+      
+      const qualityScore = title.quality_score ? 
+        `<span class="text-xs text-tertiary">Quality: ${(title.quality_score * 100).toFixed(0)}%</span>` : '';
+      
+      return `
+        <div class="bg-primary p-4 rounded border-l-4 border-accent-green">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <h4 class="font-medium text-primary text-lg mb-2">${title.content}</h4>
+              <div class="flex items-center space-x-4 text-xs text-secondary">
+                <span>📝 ${title.word_count || 0} words</span>
+                <span>📏 ${title.character_count || 0} chars</span>
+                ${qualityScore}
+                <span>📅 ${new Date(title.created_at).toLocaleDateString()}</span>
+              </div>
+              ${title.related_keyword ? `
+                <div class="mt-2 text-xs text-tertiary">
+                  🔗 Related: "${title.related_keyword}" (Vol: ${title.search_volume || 'N/A'}, Comp: ${title.competition || 'N/A'})
+                </div>
+              ` : ''}
+            </div>
+            <div class="ml-4">
+              ${approvedBadge}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    function exportTitles() {
+      if (!titlesData || titlesData.total_titles === 0) return;
+      
+      // Generate CSV
+      const headers = ['Cluster', 'Title', 'Word Count', 'Character Count', 'Quality Score', 'Approved', 'Created Date', 'Related Keyword'];
+      const rows = [headers];
+      
+      Object.entries(titlesData.by_cluster).forEach(([clusterName, clusterData]) => {
+        clusterData.titles.forEach(title => {
+          rows.push([
+            clusterName,
+            title.content,
+            title.word_count || 0,
+            title.character_count || 0,
+            title.quality_score ? (title.quality_score * 100).toFixed(0) + '%' : '',
+            title.is_approved ? 'Yes' : 'No',
+            new Date(title.created_at).toLocaleDateString(),
+            title.related_keyword || ''
+          ]);
+        });
+      });
+      
+      const csvContent = rows.map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+      
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `faq-titles-${currentProject.name.replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
