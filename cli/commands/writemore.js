@@ -297,6 +297,28 @@ class WriteMoreCommand {
         LIMIT 15
       `;
       const keywords = this.db.prepare(query).all(clusterId);
+      
+      // Debug: Check if keywords have cluster assignments
+      if (!keywords || keywords.length === 0) {
+        const totalKeywords = this.db.prepare('SELECT COUNT(*) as count FROM keywords WHERE cluster_id IS NOT NULL').get();
+        Output.showInfo(`   🔍 Debug: ${totalKeywords.count} total keywords have cluster assignments`);
+        
+        // Fallback: Get some keywords from the same project for testing
+        const cluster = this.clusterModel.findById(clusterId);
+        if (cluster) {
+          const fallbackQuery = `
+            SELECT keyword, search_volume as intent, search_volume as priority_score 
+            FROM keywords 
+            WHERE project_id = ? 
+            ORDER BY search_volume DESC 
+            LIMIT 5
+          `;
+          const fallbackKeywords = this.db.prepare(fallbackQuery).all(cluster.project_id);
+          Output.showInfo(`   🔄 Using ${fallbackKeywords.length} fallback keywords from project for testing`);
+          return fallbackKeywords || [];
+        }
+      }
+      
       return keywords || [];
     } catch (error) {
       console.error('Error getting cluster keywords:', error);
