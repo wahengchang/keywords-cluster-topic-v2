@@ -203,11 +203,7 @@ class WriteMoreCommand {
     Output.showInfo(`\n🚀 Starting FAQ title generation for ${selectedClusters.length} clusters...`);
     
     // Create processing run
-    const run = await this.processingRunModel.createRun({
-      project_id: project.id,
-      run_type: 'writemore',
-      scrape_date: new Date().toISOString().split('T')[0]
-    });
+    const run = this.processingRunModel.startRun(project.id, 'writemore');
 
     let totalGenerated = 0;
     let successfulClusters = 0;
@@ -277,7 +273,7 @@ class WriteMoreCommand {
 
       // Complete the run
       await this.processingRunModel.updateProgress(run.id, 'completed', selectedClusters.length + 1, 100);
-      await this.processingRunModel.completeRun(run.id, 'completed');
+      await this.processingRunModel.completeRun(run.id, { totalGenerated, successfulClusters });
 
       // Show summary
       Output.showInfo('\n📊 Generation Summary:');
@@ -286,7 +282,7 @@ class WriteMoreCommand {
       Output.showInfo(`📝 All titles saved to database for project "${project.name}"`);
 
     } catch (error) {
-      await this.processingRunModel.completeRun(run.id, 'failed', error.message);
+      await this.processingRunModel.markFailed(run.id, error.message);
       throw error;
     }
   }
