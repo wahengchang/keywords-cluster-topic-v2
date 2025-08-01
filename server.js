@@ -167,6 +167,65 @@ app.get('/api/clusters/:projectId', (req, res) => {
   }
 });
 
+// GET /api/generated-content/:projectId - Get all generated FAQ titles for a project
+app.get('/api/generated-content/:projectId', (req, res) => {
+  try {
+    const { projectId } = req.params;
+    console.log('Loading generated content for project:', projectId);
+    
+    const content = db.prepare(`
+      SELECT 
+        gc.*,
+        kc.cluster_name,
+        kc.cluster_description,
+        k.keyword as related_keyword,
+        k.search_volume,
+        k.competition
+      FROM generated_content gc
+      LEFT JOIN keyword_clusters kc ON gc.cluster_id = kc.id
+      LEFT JOIN keywords k ON gc.primary_keyword_id = k.id
+      WHERE gc.project_id = ? AND gc.content_type = 'title'
+      ORDER BY gc.created_at DESC, kc.cluster_name
+    `).all(projectId);
+    
+    // Group by cluster for better organization
+    const byCluster = {};
+    content.forEach(item => {
+      const clusterName = item.cluster_name || 'Uncategorized';
+      if (!byCluster[clusterName]) {
+        byCluster[clusterName] = {
+          cluster_id: item.cluster_id,
+          cluster_name: clusterName,
+          cluster_description: item.cluster_description,
+          titles: []
+        };
+      }
+      byCluster[clusterName].titles.push({
+        id: item.id,
+        content: item.content,
+        word_count: item.word_count,
+        character_count: item.character_count,
+        quality_score: item.quality_score,
+        is_approved: item.is_approved,
+        created_at: item.created_at,
+        related_keyword: item.related_keyword,
+        search_volume: item.search_volume,
+        competition: item.competition
+      });
+    });
+    
+    res.json({ 
+      content: content,
+      by_cluster: byCluster,
+      total_titles: content.length,
+      clusters_with_content: Object.keys(byCluster).length
+    });
+  } catch (err) {
+    console.error('Error in /api/generated-content:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Debug endpoint to inspect database structure
 app.get('/api/debug/schema', (req, res) => {
   try {
