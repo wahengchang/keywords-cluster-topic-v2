@@ -34,7 +34,7 @@ class WriteMoreCommand {
       // Step 2: Load and display clusters
       const clusters = await this.loadClustersWithCounts(project.id);
       if (!clusters || clusters.length === 0) {
-        Output.showWarning(`No keyword clusters found for project "${project.name}".`);
+        Output.showInfo(`⚠️  No keyword clusters found for project "${project.name}".`);
         Output.showInfo('Please run processing on this project first to create clusters.');
         return;
       }
@@ -79,7 +79,7 @@ class WriteMoreCommand {
     const projects = this.projectModel.findAll({ status: 'active' });
     
     if (!projects || projects.length === 0) {
-      Output.showWarning('No active projects found.');
+      Output.showInfo('⚠️  No active projects found.');
       Output.showInfo('Please create a project first using "Create New Project".');
       return null;
     }
@@ -228,7 +228,7 @@ class WriteMoreCommand {
           // Get cluster keywords
           const keywords = await this.getClusterKeywords(cluster.id);
           if (!keywords || keywords.length === 0) {
-            Output.showWarning(`   ⚠️  No keywords found for this cluster`);
+            Output.showInfo(`   ⚠️  No keywords found for this cluster`);
             continue;
           }
 
@@ -260,7 +260,7 @@ class WriteMoreCommand {
               Output.showInfo(`      ... and ${newTitles.length - 3} more`);
             }
           } else {
-            Output.showWarning(`   ⚠️  No new titles generated`);
+            Output.showInfo(`   ⚠️  No new titles generated`);
           }
 
         } catch (clusterError) {
