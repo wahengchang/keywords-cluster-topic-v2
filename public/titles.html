@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FAQ Titles - Project</title>
+  <title>FAQ Titles Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/components.css">
@@ -11,83 +11,114 @@
 <body class="bg-primary text-primary">
   <div id="app" class="min-h-screen flex flex-col">
     <!-- Header -->
-    <header class="h-14 bg-secondary border-b border-tertiary px-6 flex items-center justify-between">
-      <!-- Left: Logo and navigation -->
-      <div class="flex items-center gap-4">
-        <a href="/" class="text-lg font-semibold hover:text-accent-green transition-colors">
-          Keywords Cluster Tool
-        </a>
-        <nav class="text-sm text-secondary">
-          <a href="/" class="hover:text-primary transition-colors">Dashboard</a>
-          <span class="mx-2">›</span>
-          <span id="project-name-breadcrumb">Project</span>
-          <span class="mx-2">›</span>
-          <span>FAQ Titles</span>
-        </nav>
-      </div>
-      
-      <!-- Right: Control buttons -->
-      <div class="flex items-center gap-2">
-        <!-- Dark mode toggle -->
-        <button id="theme-toggle" class="relative w-12 h-6 bg-tertiary rounded-full transition-all duration-200 cursor-pointer">
-          <div id="theme-slider" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200"></div>
-        </button>
+    <header class="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <!-- Left: Logo and navigation -->
+          <div class="flex items-center space-x-8">
+            <a href="/" class="text-white text-xl font-bold hover:text-blue-200 transition-colors">
+              📊 Keywords Cluster Tool
+            </a>
+            <nav class="hidden md:flex items-center space-x-4 text-sm">
+              <a href="/" class="text-blue-100 hover:text-white transition-colors px-3 py-2 rounded-md">Dashboard</a>
+              <span class="text-blue-200">›</span>
+              <span id="project-name-breadcrumb" class="text-blue-100">Project</span>
+              <span class="text-blue-200">›</span>
+              <span class="text-white font-medium">FAQ Titles</span>
+            </nav>
+          </div>
+          
+          <!-- Right: Control buttons -->
+          <div class="flex items-center space-x-3">
+            <button id="theme-toggle" class="relative w-12 h-6 bg-white bg-opacity-20 rounded-full transition-all duration-200 cursor-pointer">
+              <div id="theme-slider" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 shadow-sm"></div>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
     
     <!-- Main content -->
-    <main class="flex-1 p-6">
-      <!-- Loading state -->
-      <div id="loading" class="text-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-green mx-auto mb-4"></div>
-        <div class="text-lg text-primary mb-2">Loading FAQ Titles...</div>
-        <div class="text-secondary text-sm">Fetching generated content</div>
-      </div>
-      
-      <!-- Project info -->
-      <div id="project-info" class="mb-6 hidden">
-        <h1 class="text-2xl font-bold text-primary mb-2">Generated FAQ Titles</h1>
-        <p class="text-secondary" id="project-subtitle">Loading...</p>
-      </div>
-      
-      <!-- No titles message -->
-      <div id="no-titles" class="text-center py-12 hidden">
-        <div class="text-6xl mb-4">📝</div>
-        <h2 class="text-xl font-semibold text-primary mb-2">No FAQ Titles Yet</h2>
-        <p class="text-secondary mb-4">This project doesn't have any generated FAQ titles.</p>
-        <p class="text-sm text-tertiary">Use the CLI command "Generate More Content" to create FAQ titles from your keyword clusters.</p>
-        <div class="mt-6">
-          <a href="/" class="px-4 py-2 bg-accent-green text-white rounded hover:bg-opacity-80 transition-colors">
-            ← Back to Dashboard
-          </a>
-        </div>
-      </div>
-      
-      <!-- Titles content -->
-      <div id="titles-content" class="hidden">
-        <div class="mb-4 flex justify-between items-center">
-          <div>
-            <span id="titles-count" class="text-sm text-secondary"></span>
+    <main class="flex-1 bg-gray-50 dark:bg-gray-900">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading state -->
+        <div id="loading" class="text-center py-16">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mb-6">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
           </div>
-          <div class="space-x-2">
-            <a href="/" class="px-4 py-2 bg-secondary text-primary rounded hover:bg-tertiary transition-colors">
-              ← Dashboard
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Loading FAQ Titles</h2>
+          <p class="text-gray-600 dark:text-gray-400">Fetching your generated content...</p>
+        </div>
+      
+        <!-- Project info -->
+        <div id="project-info" class="mb-8 hidden">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-3">🎯 Generated FAQ Titles</h1>
+          <p class="text-lg text-gray-600 dark:text-gray-400" id="project-subtitle">Loading...</p>
+        </div>
+      
+        <!-- No titles message -->
+        <div id="no-titles" class="text-center py-16 hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 max-w-2xl mx-auto">
+            <div class="text-8xl mb-6">📝</div>
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">No FAQ Titles Yet</h2>
+            <p class="text-xl text-gray-600 dark:text-gray-400 mb-6">This project doesn't have any generated FAQ titles.</p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 mb-8">
+              <p class="text-blue-800 dark:text-blue-200 font-medium">💡 Getting Started</p>
+              <p class="text-blue-700 dark:text-blue-300 mt-2">Use the CLI command "Generate More Content" to create FAQ titles from your keyword clusters.</p>
+            </div>
+            <a href="/" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg">
+              ← Back to Dashboard
             </a>
-            <button id="export-titles" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
-              Export CSV
-            </button>
           </div>
         </div>
-        
-        <div id="clusters-container" class="space-y-6">
-          <!-- Clusters with titles will be rendered here -->
+      
+        <!-- Titles content -->
+        <div id="titles-content" class="hidden">
+          <!-- Stats and controls -->
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div class="flex items-center space-x-6">
+                <div class="text-center">
+                  <div id="titles-count" class="text-2xl font-bold text-blue-600 dark:text-blue-400">0</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Total Titles</div>
+                </div>
+                <div class="text-center">
+                  <div id="clusters-count" class="text-2xl font-bold text-purple-600 dark:text-purple-400">0</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Clusters</div>
+                </div>
+              </div>
+              <div class="flex space-x-3">
+                <a href="/" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  ← Dashboard
+                </a>
+                <a id="project-link" href="#" class="px-4 py-2 bg-blue-100 dark:bg-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors">
+                  🗂️ Project Keywords
+                </a>
+                <button id="export-titles" class="px-4 py-2 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-md">
+                  📊 Export CSV
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Clusters container -->
+          <div id="clusters-container" class="space-y-8">
+            <!-- Clusters with titles will be rendered here -->
+          </div>
         </div>
       </div>
     </main>
     
     <!-- Footer -->
-    <footer class="h-8 bg-secondary border-t border-tertiary px-4 flex items-center text-sm text-secondary">
-      <span id="status-text">Ready</span>
+    <footer class="bg-gray-800 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex items-center justify-between">
+          <span id="status-text" class="text-sm text-gray-400">Ready</span>
+          <div class="text-xs text-gray-500">
+            Keywords Cluster Tool © 2024
+          </div>
+        </div>
+      </div>
     </footer>
   </div>
   
@@ -98,12 +129,18 @@
     let currentProject = null;
     let titlesData = null;
     
-    // Extract project ID from URL
-    const pathParts = window.location.pathname.split('/');
-    const projectId = pathParts[2]; // /project/{id}/titles
+    // Extract project ID from URL query parameter or path
+    const urlParams = new URLSearchParams(window.location.search);
+    let projectId = urlParams.get('project');
+    
+    // Fallback to path-based extraction for legacy URLs
+    if (!projectId) {
+      const pathParts = window.location.pathname.split('/');
+      projectId = pathParts[2]; // /project/{id}/titles
+    }
     
     if (!projectId) {
-      alert('No project ID specified');
+      alert('No project ID specified. Please use /titles?project=1 format.');
       window.location.href = '/';
     }
     
@@ -121,7 +158,13 @@
         if (currentProject) {
           document.getElementById('project-name-breadcrumb').textContent = currentProject.name;
           document.title = `FAQ Titles - ${currentProject.name}`;
+        } else {
+          document.getElementById('project-name-breadcrumb').textContent = `Project ${projectId}`;
+          document.title = `FAQ Titles - Project ${projectId}`;
         }
+        
+        // Set up project link
+        document.getElementById('project-link').href = `/project.html?id=${projectId}`;
         
         // Load generated content
         const titlesResponse = await fetch(`/api/generated-content/${projectId}`);
@@ -171,8 +214,8 @@
       
       // Show titles content
       document.getElementById('titles-content').classList.remove('hidden');
-      document.getElementById('titles-count').textContent = 
-        `${titlesData.total_titles} titles total`;
+      document.getElementById('titles-count').textContent = titlesData.total_titles;
+      document.getElementById('clusters-count').textContent = titlesData.clusters_with_content;
       
       // Render clusters
       const container = document.getElementById('clusters-container');
@@ -189,18 +232,28 @@
     
     function createClusterSection(clusterName, clusterData) {
       const section = document.createElement('div');
-      section.className = 'bg-secondary rounded-lg p-6 border border-tertiary';
+      section.className = 'bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden';
       
       section.innerHTML = `
-        <div class="mb-4">
-          <h3 class="text-xl font-semibold text-primary mb-2">${clusterName}</h3>
-          ${clusterData.cluster_description ? 
-            `<p class="text-sm text-secondary mb-2">${clusterData.cluster_description}</p>` : ''}
-          <p class="text-xs text-tertiary">${clusterData.titles.length} titles generated</p>
+        <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-6 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">🏷️ ${clusterName}</h3>
+              ${clusterData.cluster_description ? 
+                `<p class="text-gray-600 dark:text-gray-400 mb-3">${clusterData.cluster_description}</p>` : ''}
+            </div>
+            <div class="text-right">
+              <div class="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium">
+                ${clusterData.titles.length} titles
+              </div>
+            </div>
+          </div>
         </div>
         
-        <div class="space-y-3">
-          ${clusterData.titles.map(title => createTitleItem(title)).join('')}
+        <div class="p-6">
+          <div class="grid gap-4">
+            ${clusterData.titles.map(title => createTitleItem(title)).join('')}
+          </div>
         </div>
       `;
       

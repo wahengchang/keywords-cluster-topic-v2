@@ -56,21 +56,29 @@ class FAQTitleGenerator {
       ? `\n\nAvoid creating titles similar to these existing ones:\n${existingTitles.slice(0, 10).join('\n')}`
       : '';
 
-    const prompt = `Generate ${this.titlesPerCluster} unique FAQ-style article titles for the "${cluster.name}" topic cluster.
+    const prompt = `Generate ${this.titlesPerCluster} unique and comprehensive FAQ-style article titles for the "${cluster.name}" topic cluster.
 
 Keywords in this cluster: ${topKeywords}
 
 Requirements:
-- Start with question words: "How to", "What is", "Why", "When", "Where", "Best", "Top"
-- Answer common user questions about these keywords
-- Keep titles under 60 characters for SEO
-- Make them specific and actionable
-- Focus on user search intent${existingContext}
+- Create diverse title types: "How to", "What is", "Why", "When", "Where", "Best", "Top", "Complete Guide to", "Ultimate", "Beginner's Guide", "Advanced", "Step-by-Step"
+- Cover different user intents: informational, transactional, navigational, commercial
+- Mix difficulty levels: beginner, intermediate, advanced
+- Include comparison titles: "X vs Y", "X or Y", "Difference between X and Y"
+- Add year-specific titles: "Best X in 2024", "Latest X Trends"
+- Keep most titles under 60 characters but allow some longer comprehensive titles up to 80 characters
+- Make them specific, actionable, and valuable
+- Cover problems, solutions, benefits, features, and comparisons${existingContext}
 
-Examples of good FAQ titles:
+Examples of comprehensive FAQ titles:
 - "How to Start Crypto Trading for Beginners"
 - "What Are the Best Bitcoin Trading Strategies?"
-- "Why Do Cryptocurrency Prices Fluctuate?"`;
+- "Complete Guide to Cryptocurrency Investment 2024"
+- "Bitcoin vs Ethereum: Which Should You Choose?"
+- "Top 10 Crypto Trading Mistakes to Avoid"
+- "Advanced DeFi Strategies for Experienced Traders"
+- "Why Do Cryptocurrency Prices Fluctuate So Much?"
+- "Step-by-Step Guide to Setting Up a Crypto Wallet"`;
 
     try {
       const result = await chatgptStructuredArray(prompt, this.functionSchema, this.config);
@@ -125,12 +133,18 @@ Examples of good FAQ titles:
    * @returns {Array} Valid FAQ titles only
    */
   validateFAQTitles(titles) {
-    const faqStarters = ['how', 'what', 'why', 'when', 'where', 'which', 'who', 'best', 'top'];
+    const faqStarters = ['how', 'what', 'why', 'when', 'where', 'which', 'who', 'best', 'top', 'complete', 'ultimate', 'beginner', 'advanced', 'step'];
     
     return titles.filter(title => {
+      const firstWords = title.toLowerCase().split(' ').slice(0, 2).join(' ');
       const firstWord = title.toLowerCase().split(' ')[0];
-      const isQuestion = faqStarters.includes(firstWord);
-      const isReasonableLength = title.length >= 20 && title.length <= 80;
+      const isQuestion = faqStarters.includes(firstWord) || 
+                        firstWords.includes('complete guide') ||
+                        firstWords.includes('ultimate guide') ||
+                        firstWords.includes('step-by-step') ||
+                        firstWords.includes('beginner guide') ||
+                        firstWords.includes('advanced guide');
+      const isReasonableLength = title.length >= 15 && title.length <= 100;
       
       return isQuestion && isReasonableLength;
     });

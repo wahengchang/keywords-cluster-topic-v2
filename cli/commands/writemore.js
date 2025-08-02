@@ -6,6 +6,7 @@ const ProcessingRunModel = require('../../src/database/models/processing-run');
 const KeywordModel = require('../../src/database/models/keyword');
 const ClusterModel = require('../../src/database/models/cluster');
 const { FAQTitleGenerator } = require('../../src/generators/faq-title-generator');
+const { KeywordExpansionService } = require('../../src/services/keyword-expansion-service');
 
 class WriteMoreCommand {
   constructor() {
@@ -18,8 +19,8 @@ class WriteMoreCommand {
 
   async execute() {
     try {
-      Output.showInfo('🎯 Generate More Content - FAQ Title Generation');
-      Output.showInfo('Generate FAQ titles from your existing keyword clusters using AI');
+      Output.showInfo('🎯 Generate More Content - Keyword Expansion + FAQ Title Generation');
+      Output.showInfo('Discover new related keywords and generate comprehensive FAQ titles using AI');
 
       // Initialize database connection
       await this.initializeDatabase();
@@ -53,8 +54,14 @@ class WriteMoreCommand {
         return;
       }
 
-      // Step 5: Generate FAQ titles
-      await this.generateFAQTitles(project, selectedClusters, settings);
+      // Step 5: Expand keywords if requested
+      let expandedKeywordsData = null;
+      if (settings.expandKeywords) {
+        expandedKeywordsData = await this.expandClusterKeywords(project, selectedClusters, settings);
+      }
+
+      // Step 6: Generate FAQ titles with expanded keyword coverage
+      await this.generateFAQTitles(project, selectedClusters, settings, expandedKeywordsData);
 
     } catch (error) {
       Output.showError(`Content generation failed: ${error.message}`);
@@ -176,13 +183,28 @@ class WriteMoreCommand {
   async configureGenerationSettings() {
     const response = await prompts([
       {
+        type: 'confirm',
+        name: 'expandKeywords',
+        message: 'Discover additional related keywords for each cluster?',
+        initial: true
+      },
+      {
+        type: 'number',
+        name: 'keywordsPerCluster',
+        message: 'How many new keywords to discover per cluster?',
+        initial: 15,
+        min: 5,
+        max: 30,
+        validate: value => value >= 5 && value <= 30 ? true : 'Please enter a number between 5 and 30'
+      },
+      {
         type: 'number',
         name: 'titlesPerCluster',
         message: 'How many FAQ titles to generate per cluster?',
-        initial: 5,
+        initial: 8,
         min: 1,
-        max: 20,
-        validate: value => value > 0 && value <= 20 ? true : 'Please enter a number between 1 and 20'
+        max: 25,
+        validate: value => value > 0 && value <= 25 ? true : 'Please enter a number between 1 and 25'
       },
       {
         type: 'confirm',
@@ -199,8 +221,88 @@ class WriteMoreCommand {
     return response;
   }
 
-  async generateFAQTitles(project, selectedClusters, settings) {
-    Output.showInfo(`\n🚀 Starting FAQ title generation for ${selectedClusters.length} clusters...`);
+  async expandClusterKeywords(project, selectedClusters, settings) {
+    Output.showInfo(`\n🔍 Expanding keyword coverage for ${selectedClusters.length} clusters...`);
+    
+    const expansionService = new KeywordExpansionService();
+    let totalExpandedKeywords = 0;
+    let successfulExpansions = 0;
+    const expandedData = {};
+
+    try {
+      for (let i = 0; i < selectedClusters.length; i++) {
+        const cluster = selectedClusters[i];
+        const progress = Math.round(((i + 1) / selectedClusters.length) * 100);
+        
+        try {
+          Output.showProgress(`Expanding cluster ${i + 1}/${selectedClusters.length}: ${cluster.cluster_name || `Cluster ${cluster.id}`}`);
+          
+          // Get existing cluster keywords
+          const existingKeywords = await this.getClusterKeywords(cluster.id);
+          if (!existingKeywords || existingKeywords.length === 0) {
+            Output.showInfo(`   ⚠️  No existing keywords found for expansion`);
+            continue;
+          }
+          
+          // Prepare cluster data for expansion
+          const clusterData = {
+            id: cluster.id,
+            name: cluster.cluster_name || `Cluster ${cluster.id}`,
+            keywords: existingKeywords
+          };
+          
+          // Expand keywords using AI
+          const expandedKeywords = await expansionService.expandClusterKeywords(
+            clusterData, 
+            settings.keywordsPerCluster
+          );
+          
+          if (expandedKeywords && expandedKeywords.length > 0) {
+            // Save expanded keywords to database
+            await this.saveExpandedKeywords(project.id, cluster.id, expandedKeywords);
+            
+            expandedData[cluster.id] = expandedKeywords;
+            totalExpandedKeywords += expandedKeywords.length;
+            successfulExpansions++;
+            
+            Output.showSuccess(`   ✅ Discovered ${expandedKeywords.length} new keywords`);
+            // Show preview of expansion types
+            const typeCounts = expandedKeywords.reduce((acc, kw) => {
+              acc[kw.type] = (acc[kw.type] || 0) + 1;
+              return acc;
+            }, {});
+            Output.showInfo(`      Types: ${Object.entries(typeCounts).map(([type, count]) => `${type}(${count})`).join(', ')}`);
+          } else {
+            Output.showInfo(`   ⚠️  No new keywords discovered`);
+          }
+          
+        } catch (expansionError) {
+          Output.showError(`   ❌ Failed to expand keywords: ${expansionError.message}`);
+          console.error('Keyword expansion error:', expansionError);
+        }
+      }
+      
+      // Show expansion summary
+      Output.showInfo('\n📊 Keyword Expansion Summary:');
+      Output.showSuccess(`✅ Successfully expanded ${successfulExpansions}/${selectedClusters.length} clusters`);
+      Output.showSuccess(`✅ Discovered ${totalExpandedKeywords} new related keywords`);
+      
+      return {
+        totalExpandedKeywords,
+        successfulExpansions,
+        expandedData
+      };
+      
+    } catch (error) {
+      Output.showError(`Keyword expansion failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async generateFAQTitles(project, selectedClusters, settings, expandedKeywordsData = null) {
+    const expansionInfo = expandedKeywordsData ? 
+      ` (including ${expandedKeywordsData.totalExpandedKeywords} newly discovered keywords)` : '';
+    Output.showInfo(`\n🚀 Starting comprehensive FAQ title generation for ${selectedClusters.length} clusters${expansionInfo}...`);
     
     // Create processing run
     const run = this.processingRunModel.startRun(project.id, 'writemore');
@@ -225,9 +327,12 @@ class WriteMoreCommand {
             continue;
           }
 
-          // Get cluster keywords
-          const keywords = await this.getClusterKeywords(cluster.id);
-          if (!keywords || keywords.length === 0) {
+          // Get cluster keywords (original + expanded)
+          const originalKeywords = await this.getClusterKeywords(cluster.id);
+          const expandedKeywords = expandedKeywordsData?.expandedData?.[cluster.id] || [];
+          const allKeywords = [...(originalKeywords || []), ...expandedKeywords];
+          
+          if (!allKeywords || allKeywords.length === 0) {
             Output.showInfo(`   ⚠️  No keywords found for this cluster`);
             continue;
           }
@@ -238,8 +343,13 @@ class WriteMoreCommand {
           // Prepare cluster data for generator
           const clusterData = {
             name: cluster.cluster_name || `Cluster ${cluster.id}`,
-            keywords: keywords
+            keywords: allKeywords
           };
+          
+          const keywordInfo = expandedKeywords.length > 0 ? 
+            ` (${originalKeywords?.length || 0} original + ${expandedKeywords.length} expanded)` : 
+            ` (${originalKeywords?.length || 0} keywords)`;
+          Output.showInfo(`   📝 Using ${allKeywords.length} keywords for title generation${keywordInfo}`);
 
           // Generate FAQ titles
           Output.showInfo(`   🤖 Generating ${settings.titlesPerCluster} FAQ titles...`);
@@ -365,6 +475,38 @@ class WriteMoreCommand {
     } catch (error) {
       console.error('Error saving generated titles:', error);
       throw new Error(`Failed to save titles to database: ${error.message}`);
+    }
+  }
+
+  async saveExpandedKeywords(projectId, clusterId, expandedKeywords) {
+    try {
+      const insertQuery = `
+        INSERT INTO keywords (
+          project_id, cluster_id, keyword, search_volume, intent, priority_score,
+          keyword_difficulty, competition, cpc, search_trends, 
+          cleaned_keyword, expansion_type, source, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, '', ?, ?, 'expansion', datetime('now'))
+      `;
+      
+      const insertStmt = this.db.prepare(insertQuery);
+      
+      for (const keyword of expandedKeywords) {
+        insertStmt.run(
+          projectId,
+          clusterId,
+          keyword.keyword,
+          keyword.search_volume || 0,
+          keyword.intent || 'informational',
+          keyword.priority_score || 0.5,
+          keyword.keyword, // cleaned_keyword same as keyword for expanded ones
+          keyword.expansion_type || keyword.type || 'related'
+        );
+      }
+      
+      Output.showInfo(`   📊 Saved ${expandedKeywords.length} expanded keywords to database`);
+    } catch (error) {
+      console.error('Error saving expanded keywords:', error);
+      throw new Error(`Failed to save expanded keywords to database: ${error.message}`);
     }
   }
 }

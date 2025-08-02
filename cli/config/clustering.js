@@ -1,7 +1,7 @@
 const CLUSTERING_DEFAULTS = {
   kmeans: {
     minClusters: 3,
-    maxClusters: 20,
+    maxClusters: 50,  // Increased for larger datasets
     maxIterations: 100,
     tolerance: 0.001,
     initMethod: 'kmeans++'

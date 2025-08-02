@@ -28,6 +28,7 @@ async function chatgptCompletion(prompt, config = {}) {
     frequency_penalty: config.frequency_penalty ?? 1,
     max_tokens: config.max_tokens ?? 512
   };
+  console.log(`OpenAI API call - chatgptCompletion: ${model}, prompt length: ${prompt.length}`);
   const response = await axios.post(url, payload, {
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -59,7 +60,7 @@ async function chatgptSearchCompletion(prompt, config = {}) {
   };
   // Note: /v1/responses does NOT support system_message
 
-
+  console.log(`OpenAI API call - chatgptSearchCompletion: ${model}, prompt length: ${prompt.length}`);
   const response = await axios.post(url, payload, {
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -101,6 +102,7 @@ async function chatgptStructuredArray(prompt, functionSchema, config = {}) {
     frequency_penalty: config.frequency_penalty ?? 1,
     max_tokens: config.max_tokens ?? 200
   };
+  console.log(`OpenAI API call - chatgptStructuredArray: ${model}, prompt length: ${prompt.length}`);
   const response = await axios.post(url, payload, {
     headers: {
       'Authorization': `Bearer ${apiKey}`,

@@ -17,10 +17,17 @@ app.get('/api/dashboard', (req, res) => {
         p.name,
         p.last_processed,
         COUNT(DISTINCT k.keyword) AS keyword_count,
-        COUNT(DISTINCT k.cluster_id) AS total_clusters
+        COUNT(DISTINCT k.cluster_id) AS total_clusters,
+        CASE WHEN gc.faq_count > 0 THEN 1 ELSE 0 END AS has_faq_titles
       FROM projects p
       LEFT JOIN keywords k ON k.project_id = p.id
-      GROUP BY p.id, p.name, p.last_processed
+      LEFT JOIN (
+        SELECT project_id, COUNT(*) as faq_count 
+        FROM generated_content 
+        WHERE content_type = 'title' 
+        GROUP BY project_id
+      ) gc ON p.id = gc.project_id
+      GROUP BY p.id, p.name, p.last_processed, gc.faq_count
     `).all();
 
     const stats = db.prepare(`
@@ -266,7 +273,12 @@ app.get('/api/debug/schema', (req, res) => {
 // Serve static files
 app.use(express.static('public'));
 
-// Route for project titles page
+// Route for titles page with query parameter
+app.get('/titles', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'titles.html'));
+});
+
+// Route for project titles page (legacy support)
 app.get('/project/:projectId/titles', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'titles.html'));
 });

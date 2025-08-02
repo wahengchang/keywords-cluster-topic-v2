@@ -1,10 +1,11 @@
 const { kmeans } = require('ml-kmeans');
 const natural = require('natural');
 const { Matrix } = require('ml-matrix');
+const { CLUSTERING_DEFAULTS } = require('../../cli/config/clustering');
 
 class ClusteringService {
   constructor(config = {}) {
-    this.config = config;
+    this.config = { ...CLUSTERING_DEFAULTS, ...config };
   }
 
   async performAdvancedClustering(keywords, options = {}) {
@@ -28,7 +29,7 @@ class ClusteringService {
     const { embeddings, vocabulary } = this.generateSemanticEmbeddings(keywords);
     const features = this.buildFeatureMatrix(keywords, embeddings);
 
-    const k = options.clusterCount || await this.optimizeClusterCount(features);
+    const k = options.clusterCount || await this.optimizeClusterCount(features, this.config.kmeans?.maxClusters);
     
     // Handle case where we need only 1 cluster
     if (k === 1) {
@@ -70,7 +71,20 @@ class ClusteringService {
     });
   }
 
-  async optimizeClusterCount(features, maxClusters = 10) {
+  async optimizeClusterCount(features, maxClusters = null) {
+    // Use configuration or calculate based on data size
+    if (!maxClusters) {
+      // For large datasets, allow more clusters: roughly sqrt(n/2) but with reasonable bounds
+      const dataSize = features.length;
+      if (dataSize > 1000) {
+        maxClusters = Math.min(50, Math.floor(Math.sqrt(dataSize / 2)));
+      } else if (dataSize > 100) {
+        maxClusters = Math.min(20, Math.floor(dataSize / 10));
+      } else {
+        maxClusters = Math.min(10, Math.floor(dataSize / 5));
+      }
+    }
+    
     const min = 2;
     const maxPossible = Math.min(maxClusters, features.length - 1);
     

@@ -7,7 +7,7 @@ class DatabaseSchema {
         name TEXT NOT NULL,
         domain TEXT,
         url TEXT,
-        project_type TEXT CHECK(project_type IN ('domain', 'subfolder')),
+        project_type TEXT CHECK(project_type IN ('domain', 'subdomain', 'subfolder', 'url')),
         slug TEXT UNIQUE NOT NULL,
         configuration TEXT,
         status TEXT DEFAULT 'active' CHECK(status IN ('active', 'archived', 'deleted')),
@@ -23,7 +23,7 @@ class DatabaseSchema {
       CREATE TABLE IF NOT EXISTS processing_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         project_id INTEGER NOT NULL,
-        run_type TEXT NOT NULL CHECK(run_type IN ('create', 'rescrape', 'writemore', 'analyze')),
+        run_type TEXT NOT NULL CHECK(run_type IN ('create', 'rescrape', 'writemore', 'analyze', 'faq_generation')),
         scrape_date DATE NOT NULL,
         status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'running', 'completed', 'failed', 'cancelled')),
         current_stage TEXT,

@@ -40,10 +40,43 @@ async function fetchSemrushKeywordsDomain({ target, database, limit }) {
   console.log('Request URL:', fullUrl);
 
   try {
-    const response = await axios.get(endpoint, { params });
+    console.log('📡 Sending request to SEMrush API...');
+    console.log(`🎯 Target: ${target} | Database: ${database} | Limit: ${limit}`);
+    
+    // Add timeout and progress logging
+    const startTime = Date.now();
+    let progressInterval;
+    
+    // Show progress every 10 seconds
+    progressInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      console.log(`⏳ Still waiting for SEMrush response... (${elapsed}s elapsed)`);
+    }, 10000);
+    
+    const response = await axios.get(endpoint, { 
+      params,
+      timeout: 300000, // 5 minute timeout
+      headers: {
+        'User-Agent': 'Keywords-Cluster-Tool/1.0'
+      }
+    });
+    
+    clearInterval(progressInterval);
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    console.log(`✅ SEMrush API response received (${elapsed}s)`);
+    console.log(`📊 Response size: ${response.data.length} characters`);
+    
     return response.data;
   } catch (err) {
-    console.error('API error:', err.response?.data || err.message);
+    if (progressInterval) clearInterval(progressInterval);
+    
+    if (err.code === 'ECONNABORTED') {
+      console.error('❌ SEMrush API request timed out (5+ minutes)');
+    } else if (err.response?.status) {
+      console.error(`❌ SEMrush API error (${err.response.status}):`, err.response?.data || err.message);
+    } else {
+      console.error('❌ Network error:', err.message);
+    }
     throw err;
   }
 }
@@ -86,10 +119,43 @@ async function fetchSemrushKeywordsSubfolder({ apiKey, subfolder, database, limi
   console.log('Request URL:', fullUrl);
 
   try {
-    const response = await axios.get(endpoint, { params });
+    console.log('📡 Sending request to SEMrush API...');
+    console.log(`🎯 Subfolder: ${subfolder} | Database: ${database} | Limit: ${limit}`);
+    
+    // Add timeout and progress logging
+    const startTime = Date.now();
+    let progressInterval;
+    
+    // Show progress every 10 seconds
+    progressInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      console.log(`⏳ Still waiting for SEMrush response... (${elapsed}s elapsed)`);
+    }, 10000);
+    
+    const response = await axios.get(endpoint, { 
+      params,
+      timeout: 300000, // 5 minute timeout
+      headers: {
+        'User-Agent': 'Keywords-Cluster-Tool/1.0'
+      }
+    });
+    
+    clearInterval(progressInterval);
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    console.log(`✅ SEMrush API response received (${elapsed}s)`);
+    console.log(`📊 Response size: ${response.data.length} characters`);
+    
     return response.data;
   } catch (err) {
-    console.error('API error:', err.response?.data || err.message);
+    if (progressInterval) clearInterval(progressInterval);
+    
+    if (err.code === 'ECONNABORTED') {
+      console.error('❌ SEMrush API request timed out (5+ minutes)');
+    } else if (err.response?.status) {
+      console.error(`❌ SEMrush API error (${err.response.status}):`, err.response?.data || err.message);
+    } else {
+      console.error('❌ Network error:', err.message);
+    }
     throw err;
   }
 }
