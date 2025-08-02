@@ -50,8 +50,13 @@ class DeduplicationService {
 
   async deduplicateKeywords(cleanedKeywords, options = {}) {
     const threshold = options.similarityThreshold || 0.8;
+    const initialCount = cleanedKeywords.length;
     const unique = this.removeExactDuplicates(cleanedKeywords);
     const similarGroups = this.findSimilarKeywords(unique, threshold);
+    const finalCount = unique.length;
+    
+    console.log(`✓ Deduplication: ${initialCount} → ${finalCount} keywords (removed ${initialCount - finalCount} duplicates)`);
+    
     return { unique, similarGroups };
   }
 }

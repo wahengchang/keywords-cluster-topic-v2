@@ -67,6 +67,7 @@ class KeywordService {
     if (!this.db) await this.initialize();
 
     const keywords = this.rawKeywordModel.saveFromCSV(projectId, runId, csvData);
+    console.log(`✓ Saved ${keywords.length} raw keywords to database`);
     return keywords;
   }
 
@@ -100,12 +101,16 @@ class KeywordService {
 
     // Save clusters
     const savedClusters = this.clusterModel.saveClusters(runId, projectId, clusters);
+    console.log(`✓ Saved ${savedClusters.length} clusters to database`);
 
     // Save deduplication groups
     let savedGroups = [];
     if (similarGroups && similarGroups.length > 0) {
       savedGroups = this.deduplicationModel.saveDeduplicationGroups(runId, projectId, similarGroups);
+      console.log(`✓ Saved ${savedGroups.length} deduplication groups to database`);
     }
+
+    console.log(`✓ Saved ${savedKeywords.length} processed keywords to database`);
 
     return {
       keywords: savedKeywords,
@@ -160,15 +165,18 @@ class KeywordService {
       const rawKeywords = await this.saveRawKeywords(run.id, project.id, csvData);
       
       // STAGE 3: Data Cleaning
+      console.log('[STAGE]3: Data Cleaning')
       await this.processingRunModel.updateProgress(run.id, 'cleaning_data', 3, 37);
       const cleanedKeywords = await this.cleaningService.cleanKeywords(rawKeywords);
       
       // STAGE 4: Deduplication
+      console.log('[STAGE]4: Deduplication')
       await this.processingRunModel.updateProgress(run.id, 'deduplicating', 4, 50);
       const deduplicationResult = await this.deduplicationService.deduplicateKeywords(cleanedKeywords);
       const { unique: uniqueKeywords, similarGroups } = deduplicationResult;
       
       // STAGE 5: Clustering Analysis
+      console.log('[STAGE]5: Clustering Analysis')
       await this.processingRunModel.updateProgress(run.id, 'clustering', 5, 62);
       const clusters = await this.clusteringService.performAdvancedClustering(uniqueKeywords);
       
