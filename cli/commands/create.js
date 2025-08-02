@@ -205,7 +205,10 @@ class CreateCommand {
           if (expandedKeywords && expandedKeywords.length > 0) {
             // Save expanded keywords to database
             const db = await getDatabase();
-            await this.saveExpandedKeywords(db, project.id, cluster.id, expandedKeywords, result.run.id);
+            // Create a run for saving expanded keywords
+            const processingRunModel = new ProcessingRunModel(db);
+            const run = processingRunModel.startRun(project.id, 'create');
+            await this.saveExpandedKeywords(db, project.id, cluster.id, expandedKeywords, run.id);
             
             expandedData[cluster.id] = expandedKeywords;
             totalExpandedKeywords += expandedKeywords.length;
@@ -388,6 +391,32 @@ class CreateCommand {
     }
   }
   
+  // Map expansion types from the service to database schema values
+  mapExpansionType(type) {
+    const typeMapping = {
+      'long-tail': 'long_tail',
+      'semantic': 'semantic', 
+      'synonym': 'related',
+      'related': 'related',
+      'question': 'related',
+      'modifier': 'related'
+    };
+    
+    return typeMapping[type] || 'related';
+  }
+
+  // Map intent values from the service to database schema values
+  mapIntent(intent) {
+    const intentMapping = {
+      'informational': 'informational',
+      'navigational': 'navigational', 
+      'commercial': 'commercial',
+      'transactional': 'transactional'
+    };
+    
+    return intentMapping[intent] || 'informational';
+  }
+
   async saveExpandedKeywords(db, projectId, clusterId, expandedKeywords, runId) {
     try {
       const insertQuery = `
@@ -401,16 +430,18 @@ class CreateCommand {
       const insertStmt = db.prepare(insertQuery);
       
       for (const keyword of expandedKeywords) {
+        const expansionType = this.mapExpansionType(keyword.expansion_type || keyword.type);
+        const intent = this.mapIntent(keyword.intent);
         insertStmt.run(
           projectId,
           runId,
           clusterId,
           keyword.keyword,
           keyword.search_volume || 0,
-          keyword.intent || 'informational',
+          intent,
           keyword.priority_score || 0.5,
           keyword.keyword, // cleaned_keyword same as keyword for expanded ones
-          keyword.expansion_type || keyword.type || 'related'
+          expansionType
         );
       }
     } catch (error) {

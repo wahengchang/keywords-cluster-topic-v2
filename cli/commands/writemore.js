@@ -224,6 +224,9 @@ class WriteMoreCommand {
   async expandClusterKeywords(project, selectedClusters, settings) {
     Output.showInfo(`\n🔍 Expanding keyword coverage for ${selectedClusters.length} clusters...`);
     
+    // Create processing run for keyword expansion
+    const run = this.processingRunModel.startRun(project.id, 'writemore');
+    
     const expansionService = new KeywordExpansionService();
     let totalExpandedKeywords = 0;
     let successfulExpansions = 0;
@@ -259,7 +262,7 @@ class WriteMoreCommand {
           
           if (expandedKeywords && expandedKeywords.length > 0) {
             // Save expanded keywords to database
-            await this.saveExpandedKeywords(project.id, cluster.id, expandedKeywords);
+            await this.saveExpandedKeywords(run.id, project.id, cluster.id, expandedKeywords);
             
             expandedData[cluster.id] = expandedKeywords;
             totalExpandedKeywords += expandedKeywords.length;
@@ -478,28 +481,57 @@ class WriteMoreCommand {
     }
   }
 
-  async saveExpandedKeywords(projectId, clusterId, expandedKeywords) {
+  // Map expansion types from the service to database schema values
+  mapExpansionType(type) {
+    const typeMapping = {
+      'long-tail': 'long_tail',
+      'semantic': 'semantic', 
+      'synonym': 'related',
+      'related': 'related',
+      'question': 'related',
+      'modifier': 'related'
+    };
+    
+    return typeMapping[type] || 'related';
+  }
+
+  // Map intent values from the service to database schema values
+  mapIntent(intent) {
+    const intentMapping = {
+      'informational': 'informational',
+      'navigational': 'navigational', 
+      'commercial': 'commercial',
+      'transactional': 'transactional'
+    };
+    
+    return intentMapping[intent] || 'informational';
+  }
+
+  async saveExpandedKeywords(runId, projectId, clusterId, expandedKeywords) {
     try {
       const insertQuery = `
         INSERT INTO keywords (
-          project_id, cluster_id, keyword, search_volume, intent, priority_score,
-          keyword_difficulty, competition, cpc, search_trends, 
+          project_id, run_id, cluster_id, keyword, search_volume, intent, priority_score,
+          difficulty_score, competition, cpc, trends, 
           cleaned_keyword, expansion_type, source, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, '', ?, ?, 'expansion', datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, '', ?, ?, 'expansion', datetime('now'))
       `;
       
       const insertStmt = this.db.prepare(insertQuery);
       
       for (const keyword of expandedKeywords) {
+        const expansionType = this.mapExpansionType(keyword.expansion_type || keyword.type);
+        const intent = this.mapIntent(keyword.intent);
         insertStmt.run(
           projectId,
+          runId,
           clusterId,
           keyword.keyword,
           keyword.search_volume || 0,
-          keyword.intent || 'informational',
+          intent,
           keyword.priority_score || 0.5,
           keyword.keyword, // cleaned_keyword same as keyword for expanded ones
-          keyword.expansion_type || keyword.type || 'related'
+          expansionType
         );
       }
       

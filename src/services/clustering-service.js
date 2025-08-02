@@ -15,15 +15,25 @@ class ClusteringService {
     
     // Handle single keyword case
     if (keywords.length === 1) {
-      return [{
+      const cluster = {
         id: 0,
         name: keywords[0].keyword,
         keywords: keywords,
         embeddings: [],
-        center: [],
-        silhouette: 1.0,
-        coherence: 1.0
-      }];
+        center: []
+      };
+      
+      // Add scores using database schema names
+      cluster.silhouette_score = 1.0;
+      cluster.coherence_score = 1.0;
+      cluster.business_value_score = this.calculateBusinessValue(cluster);
+      cluster.semantic_center = this.calculateSemanticCenter(cluster.keywords);
+      
+      // Keep legacy names for backward compatibility
+      cluster.silhouette = 1.0;
+      cluster.coherence = 1.0;
+      
+      return [cluster];
     }
 
     const { embeddings, vocabulary } = this.generateSemanticEmbeddings(keywords);
@@ -33,15 +43,25 @@ class ClusteringService {
     
     // Handle case where we need only 1 cluster
     if (k === 1) {
-      return [{
+      const cluster = {
         id: 0,
         name: this.generateSimpleClusterName(keywords),
         keywords: keywords,
         embeddings: embeddings,
-        center: [],
-        silhouette: 1.0,
-        coherence: this.analyzeClusterCoherence({ keywords })
-      }];
+        center: []
+      };
+      
+      // Add scores using database schema names
+      cluster.silhouette_score = 1.0;
+      cluster.coherence_score = this.analyzeClusterCoherence(cluster);
+      cluster.business_value_score = this.calculateBusinessValue(cluster);
+      cluster.semantic_center = this.calculateSemanticCenter(cluster.keywords);
+      
+      // Keep legacy names for backward compatibility
+      cluster.silhouette = 1.0;
+      cluster.coherence = cluster.coherence_score;
+      
+      return [cluster];
     }
     
     const result = await this.kMeansClustering(features, k);
@@ -251,6 +271,36 @@ class ClusteringService {
     return natural.JaroWinklerDistance(a, b);
   }
 
+  calculateSemanticCenter(keywords) {
+    if (!keywords || keywords.length === 0) return null;
+    
+    // Find the most representative keyword(s) in the cluster
+    // This could be the keyword with highest average similarity to all others
+    let bestKeyword = '';
+    let maxAvgSimilarity = 0;
+    
+    for (const candidateKeyword of keywords) {
+      const keyword = candidateKeyword.keyword || candidateKeyword;
+      let totalSimilarity = 0;
+      
+      for (const otherKeyword of keywords) {
+        const other = otherKeyword.keyword || otherKeyword;
+        if (keyword !== other) {
+          totalSimilarity += this.calculateSemanticSimilarity(keyword, other);
+        }
+      }
+      
+      const avgSimilarity = keywords.length > 1 ? totalSimilarity / (keywords.length - 1) : 1;
+      
+      if (avgSimilarity > maxAvgSimilarity) {
+        maxAvgSimilarity = avgSimilarity;
+        bestKeyword = keyword;
+      }
+    }
+    
+    return bestKeyword;
+  }
+
   buildClusters(result, keywords, embeddings, vocabulary) {
     const clusters = [];
     result.clusters.forEach((cid, idx) => {
@@ -260,6 +310,14 @@ class ClusteringService {
       clusters[cid].keywords.push(keywords[idx]);
       clusters[cid].embeddings.push(embeddings[idx]);
     });
+    
+    // Calculate semantic center for each cluster
+    clusters.forEach(cluster => {
+      if (cluster && cluster.keywords && cluster.keywords.length > 0) {
+        cluster.semantic_center = this.calculateSemanticCenter(cluster.keywords);
+      }
+    });
+    
     return clusters;
   }
 
@@ -292,9 +350,31 @@ class ClusteringService {
   assessClusterQuality(clusters, features, assignments) {
     const silhouette = this.calculateSilhouetteScore(features, assignments, clusters.length);
     clusters.forEach(cluster => {
+      // Use database schema property names
+      cluster.silhouette_score = silhouette;
+      cluster.coherence_score = this.analyzeClusterCoherence(cluster);
+      cluster.business_value_score = this.calculateBusinessValue(cluster);
+      
+      // Keep legacy names for backward compatibility
       cluster.silhouette = silhouette;
-      cluster.coherence = this.analyzeClusterCoherence(cluster);
+      cluster.coherence = cluster.coherence_score;
     });
+  }
+
+  calculateBusinessValue(cluster) {
+    if (!cluster.keywords || cluster.keywords.length === 0) return 0;
+    
+    const totalSearchVolume = cluster.keywords.reduce((sum, kw) => sum + (kw.search_volume || 0), 0);
+    const avgCompetition = cluster.keywords.reduce((sum, kw) => sum + (kw.competition || 0), 0) / cluster.keywords.length;
+    const avgCpc = cluster.keywords.reduce((sum, kw) => sum + (kw.cpc || 0), 0) / cluster.keywords.length;
+    
+    // Business value formula: prioritize high volume, low competition, high CPC
+    const volumeScore = Math.min(totalSearchVolume / 10000, 1); // Normalize to 0-1
+    const competitionScore = 1 - Math.min(avgCompetition, 1); // Lower competition = higher score
+    const cpcScore = Math.min(avgCpc / 5, 1); // Normalize CPC to 0-1 (assuming $5 is high)
+    
+    // Weighted average: volume 50%, competition 30%, CPC 20%
+    return (volumeScore * 0.5 + competitionScore * 0.3 + cpcScore * 0.2);
   }
 
   analyzeClusterCoherence(cluster) {

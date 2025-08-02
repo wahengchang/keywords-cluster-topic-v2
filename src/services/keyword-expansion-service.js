@@ -83,6 +83,54 @@ class KeywordExpansionService {
   }
 
   /**
+   * Sanitize keyword object to fix malformed property names from API
+   * @param {Object} kw - Raw keyword object from API
+   * @returns {Object|null} Sanitized keyword object or null if invalid
+   */
+  sanitizeKeywordObject(kw) {
+    try {
+      if (!kw || typeof kw !== 'object') return null;
+      
+      // Extract properties, handling both normal and spaced property names
+      const getProperty = (obj, name) => {
+        // Try exact match first
+        if (obj[name] !== undefined) return obj[name];
+        // Try with trailing space
+        if (obj[name + ' '] !== undefined) return obj[name + ' '];
+        // Try with leading space
+        if (obj[' ' + name] !== undefined) return obj[' ' + name];
+        // Try with both spaces
+        if (obj[' ' + name + ' '] !== undefined) return obj[' ' + name + ' '];
+        return undefined;
+      };
+      
+      const keyword = getProperty(kw, 'keyword');
+      const type = getProperty(kw, 'type');
+      const intent = getProperty(kw, 'intent');
+      const confidence = getProperty(kw, 'confidence');
+      
+      // Validate required fields
+      if (!keyword || typeof keyword !== 'string' || keyword.trim().length === 0) {
+        return null;
+      }
+      
+      if (typeof confidence !== 'number' || confidence < 0 || confidence > 1) {
+        return null;
+      }
+      
+      return {
+        keyword: keyword.trim(),
+        type: (type || 'related').trim(),
+        intent: (intent || 'informational').trim(),
+        confidence: confidence
+      };
+      
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
    * Execute keyword expansion with error handling and result validation
    * @param {string} prompt - The prompt to send
    * @param {Object} metadata - Metadata to add to results
@@ -103,7 +151,13 @@ class KeywordExpansionService {
         return [];
       }
       
-      return result
+      // Sanitize the result array to fix malformed property names
+      const sanitized = result
+        .filter(kw => kw && typeof kw === 'object')
+        .map(kw => this.sanitizeKeywordObject(kw))
+        .filter(kw => kw !== null);
+      
+      const processed = sanitized
         .filter(kw => kw && kw.keyword && kw.confidence >= 0.6)
         .map(kw => ({
           ...kw,
@@ -113,9 +167,13 @@ class KeywordExpansionService {
           created_at: new Date().toISOString()
         }))
         .slice(0, maxResults);
+      
+      console.log(`✅ Processed ${processed.length}/${result.length} keywords successfully`);
+      return processed;
         
     } catch (err) {
       console.error('Expansion failed:', err.message);
+      console.error('Error stack trace:', err.stack);
       if (err.message.includes('JSON')) {
         console.warn('JSON parsing error - likely due to large response');
       }
