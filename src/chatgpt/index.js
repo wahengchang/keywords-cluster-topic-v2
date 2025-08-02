@@ -47,7 +47,7 @@ async function chatgptCompletion(prompt, config = {}) {
 async function chatgptSearchCompletion(prompt, config = {}) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY environment variable not set');
-  const model = config.model || 'gpt-4o';
+  const model = config.model || 'gpt-4o-mini';
   const url = 'https://api.openai.com/v1/responses';
   // Only include supported parameters for /v1/responses endpoint
   const payload = {
@@ -86,7 +86,7 @@ async function chatgptSearchCompletion(prompt, config = {}) {
 async function chatgptStructuredArray(prompt, functionSchema, config = {}) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY environment variable not set');
-  const model = config.model || 'gpt-4o';
+  const model = config.model || 'gpt-4o-mini';
   const url = 'https://api.openai.com/v1/chat/completions';
   const payload = {
     model,
@@ -111,11 +111,26 @@ async function chatgptStructuredArray(prompt, functionSchema, config = {}) {
   });
   const args = response.data.choices[0].message.function_call.arguments;
   // Assume output is always a JSON string with the array under a key (e.g., questions)
-  const obj = JSON.parse(args);
-  // Return the first array property
+  let obj;
+  try {
+    obj = JSON.parse(args);
+  } catch (parseError) {
+    console.error('JSON parse error:', parseError.message);
+    console.error('Raw arguments:', args);
+    return [];
+  }  
+  // The function schema expects array under "keywords" property
+  if (obj.keywords && Array.isArray(obj.keywords)) {
+    return obj.keywords;
+  }
+  
+  // Fallback: look for any array property
   for (const key in obj) {
     if (Array.isArray(obj[key])) return obj[key];
   }
+  
+  // No array found, return empty array
+  console.warn('No valid array found in API response');
   return [];
 }
 

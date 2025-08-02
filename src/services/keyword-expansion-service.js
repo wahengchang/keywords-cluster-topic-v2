@@ -5,11 +5,18 @@ const { chatgptStructuredArray } = require('../chatgpt/index');
 class KeywordExpansionService {
   constructor({ config = {} } = {}) {
     this.config = Object.assign({
-      systemMessage: 'You are an expert SEO keyword researcher specializing in finding semantically related keywords and long-tail variations.',
+      systemMessage: 'Generate SEO keywords with types, intents, and confidence scores.',
       temperature: 0.7,
       top_p: 0.9,
-      max_tokens: 2000
+      max_tokens: 1500
     }, config);
+    
+    // Reusable prompt templates for different expansion types
+    this.promptTemplates = {
+      cluster: (theme, seeds, count) => `Expand "${theme}" with ${count} keywords. Seeds: ${seeds}`,
+      theme: (theme, count) => `Generate ${count} diverse keywords for "${theme}" theme`,
+      variations: (base, count) => `Create ${count} variations of: ${base}`
+    };
     
     this.functionSchema = {
       name: "expand_keywords",
@@ -52,6 +59,71 @@ class KeywordExpansionService {
   }
 
   /**
+   * Build a concise prompt for keyword expansion
+   * @param {string} type - Type of expansion (cluster, theme, variations)
+   * @param {Object} params - Parameters for prompt building
+   * @returns {string} Optimized prompt
+   */
+  buildPrompt(type, params) {
+    const basePrompt = this.promptTemplates[type] || this.promptTemplates.theme;
+    const theme = params.theme || params.name || 'keywords';
+    const seedsOrBase = params.seeds || params.base || '';
+    const count = params.count || 10;
+    
+    const prompt = basePrompt(theme, seedsOrBase, count);
+    
+    // Add concise expansion instructions
+    const instructions = [
+      'Include: long-tail, semantic, questions, commercial keywords',
+      'Mix intents: informational, transactional, commercial, navigational',
+      'Confidence 0.6+ required, 2-8 words each'
+    ].join('. ');
+    
+    return `${prompt}. ${instructions}.`;
+  }
+
+  /**
+   * Execute keyword expansion with error handling and result validation
+   * @param {string} prompt - The prompt to send
+   * @param {Object} metadata - Metadata to add to results
+   * @param {number} maxResults - Maximum results to return
+   * @returns {Array} Processed keyword results
+   */
+  async executeExpansion(prompt, metadata, maxResults) {
+    try {
+      const result = await chatgptStructuredArray(prompt, this.functionSchema, this.config);
+
+      if (!result) {
+        console.warn('API returned null/undefined result');
+        return [];
+      }
+      
+      if (!Array.isArray(result)) {
+        console.warn('API returned non-array result:', typeof result, result);
+        return [];
+      }
+      
+      return result
+        .filter(kw => kw && kw.keyword && kw.confidence >= 0.6)
+        .map(kw => ({
+          ...kw,
+          ...metadata,
+          search_volume: this.estimateSearchVolume(kw.keyword, kw.type),
+          priority_score: this.calculateExpansionPriority(kw),
+          created_at: new Date().toISOString()
+        }))
+        .slice(0, maxResults);
+        
+    } catch (err) {
+      console.error('Expansion failed:', err.message);
+      if (err.message.includes('JSON')) {
+        console.warn('JSON parsing error - likely due to large response');
+      }
+      throw new Error(`Keyword expansion failed: ${err.message}`);
+    }
+  }
+
+  /**
    * Expand keywords for a cluster using AI-powered semantic analysis
    * @param {Object} cluster - Cluster information with existing keywords
    * @param {string} cluster.name - Cluster name/theme
@@ -64,68 +136,24 @@ class KeywordExpansionService {
       throw new Error('Cluster must have existing keywords for expansion');
     }
 
-    // Extract top keywords for analysis
     const seedKeywords = cluster.keywords
-      .slice(0, 10) // Use top 10 keywords as seed
+      .slice(0, 8) // Reduced from 10 to 8 to keep prompt shorter
       .map(k => k.keyword || k)
       .join(', ');
 
-    const prompt = `Expand the keyword coverage for the "${cluster.name}" topic cluster by generating ${expansionCount} new related keywords.
+    const prompt = this.buildPrompt('cluster', {
+      name: cluster.name,
+      seeds: seedKeywords,
+      count: expansionCount
+    });
 
-Existing seed keywords: ${seedKeywords}
+    const metadata = {
+      cluster_name: cluster.name,
+      source: 'ai_expansion',
+      expansion_type: 'cluster'
+    };
 
-Generate diverse keyword expansions:
-
-1. **Long-tail variations** (3-6 words):
-   - Add modifiers: "best", "top", "how to", "guide", "tips", "2024"
-   - Location-based: "near me", "in [city]", "local"
-   - Time-based: "quick", "fast", "instant", "step by step"
-
-2. **Semantic variations**:
-   - Synonyms and related terms
-   - Industry-specific terminology
-   - Alternative phrasings
-
-3. **Question-based keywords**:
-   - "How to [action]", "What is [term]", "Why [situation]"
-   - "Can you [action]", "Should I [decision]"
-
-4. **Commercial intent keywords**:
-   - "Buy", "price", "cost", "review", "comparison"
-   - "vs", "alternative", "substitute"
-
-5. **Problem-solution keywords**:
-   - "Fix", "solve", "troubleshoot", "error", "problem"
-   - "Not working", "failed", "issues"
-
-Requirements:
-- Each keyword should be 2-8 words long
-- Mix different search intents (informational, transactional, commercial, navigational)
-- Ensure high relevance to the cluster theme
-- Include confidence scores (0.7+ for high relevance)
-- Avoid exact duplicates of seed keywords`;
-
-    try {
-      const result = await chatgptStructuredArray(prompt, this.functionSchema, this.config);
-      
-      // Filter and enhance results
-      const expandedKeywords = result
-        .filter(kw => kw.confidence >= 0.6) // Only keep reasonably confident suggestions
-        .map(kw => ({
-          ...kw,
-          cluster_name: cluster.name,
-          source: 'ai_expansion',
-          expansion_type: kw.type,
-          search_volume: this.estimateSearchVolume(kw.keyword, kw.type),
-          priority_score: this.calculateExpansionPriority(kw),
-          created_at: new Date().toISOString()
-        }));
-
-      return expandedKeywords.slice(0, expansionCount);
-    } catch (err) {
-      console.error('Keyword expansion error for cluster:', cluster.name, err);
-      throw new Error(`Failed to expand keywords: ${err.message}`);
-    }
+    return await this.executeExpansion(prompt, metadata, expansionCount);
   }
 
   /**
@@ -224,39 +252,21 @@ Requirements:
    * @returns {Array} Generated keyword variations
    */
   async generateThemeVariations(theme, existingKeywords = [], count = 25) {
-    const existingContext = existingKeywords.length > 0 
-      ? `\n\nAvoid these existing keywords:\n${existingKeywords.slice(0, 15).join(', ')}`
-      : '';
-
-    const prompt = `Generate ${count} diverse keyword variations for the theme: "${theme}"
-
-Create comprehensive keyword coverage including:
-- Different search intents and user goals
-- Various difficulty levels (beginner to advanced)
-- Commercial and informational keywords
-- Long-tail and short-tail variations
-- Problem-solving and solution-oriented terms${existingContext}
-
-Focus on keywords that would be valuable for content creation and SEO.`;
-
-    try {
-      const result = await chatgptStructuredArray(prompt, this.functionSchema, this.config);
-      
-      return result
-        .filter(kw => kw.confidence >= 0.6)
-        .map(kw => ({
-          ...kw,
-          theme: theme,
-          source: 'theme_expansion',
-          search_volume: this.estimateSearchVolume(kw.keyword, kw.type),
-          priority_score: this.calculateExpansionPriority(kw)
-        }))
-        .slice(0, count);
-        
-    } catch (err) {
-      console.error('Theme variation generation error:', err);
-      throw new Error(`Failed to generate theme variations: ${err.message}`);
+    let prompt = this.buildPrompt('theme', { theme, count });
+    
+    // Add existing keywords context if provided (but keep it concise)
+    if (existingKeywords.length > 0) {
+      const existing = existingKeywords.slice(0, 8).join(', '); // Reduced from 15 to 8
+      prompt += ` Avoid: ${existing}.`;
     }
+
+    const metadata = {
+      theme: theme,
+      source: 'theme_expansion',
+      expansion_type: 'theme'
+    };
+
+    return await this.executeExpansion(prompt, metadata, count);
   }
 }
 

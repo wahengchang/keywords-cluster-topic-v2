@@ -328,9 +328,6 @@ class ClusteringService {
 
     const s = [];
     for (let i = 0; i < n; i++) {
-      if(i%13===0) {
-        process.stdout.write(`\rcalculateSilhouetteScore: ${i}/${n}`);
-      }
       const ownCluster = assignments[i];
       const a = clusters[ownCluster].reduce((acc, idx) => acc + distances(features[i], features[idx]), 0) / Math.max(clusters[ownCluster].length - 1, 1);
       let b = Infinity;
@@ -341,6 +338,9 @@ class ClusteringService {
       }
       const score = (b - a) / Math.max(a, b);
       s.push(score);
+      if(i%13===0) {
+        process.stdout.write(`\rcalculateSilhouetteScore: score ${score}- ${i}/${n}`);
+      }
     }
     const mean = s.reduce((acc, val) => acc + val, 0) / s.length;
     return mean;

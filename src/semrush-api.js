@@ -39,13 +39,14 @@ async function fetchSemrushKeywordsDomain({ target, database, limit }) {
   const fullUrl = endpoint + '?' + Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
   console.log('Request URL:', fullUrl);
 
+  let progressInterval;
+  
   try {
     console.log('📡 Sending request to SEMrush API...');
     console.log(`🎯 Target: ${target} | Database: ${database} | Limit: ${limit}`);
     
     // Add timeout and progress logging
     const startTime = Date.now();
-    let progressInterval;
     
     // Show progress every 10 seconds
     progressInterval = setInterval(() => {
@@ -118,13 +119,14 @@ async function fetchSemrushKeywordsSubfolder({ apiKey, subfolder, database, limi
   const fullUrl = endpoint + '?' + Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
   console.log('Request URL:', fullUrl);
 
+  let progressInterval;
+  
   try {
     console.log('📡 Sending request to SEMrush API...');
     console.log(`🎯 Subfolder: ${subfolder} | Database: ${database} | Limit: ${limit}`);
     
     // Add timeout and progress logging
     const startTime = Date.now();
-    let progressInterval;
     
     // Show progress every 10 seconds
     progressInterval = setInterval(() => {
