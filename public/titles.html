@@ -87,7 +87,17 @@
                   <div class="text-sm text-gray-600 dark:text-gray-400">Clusters</div>
                 </div>
               </div>
-              <div class="flex space-x-3">
+              <div class="flex flex-wrap gap-3">
+                <!-- View switcher -->
+                <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                  <button id="detailed-view-btn" class="px-3 py-1 text-sm font-medium rounded-md transition-colors bg-blue-500 text-white">
+                    📋 Detailed
+                  </button>
+                  <button id="plain-view-btn" class="px-3 py-1 text-sm font-medium rounded-md transition-colors text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">
+                    📄 Plain Text
+                  </button>
+                </div>
+                
                 <a href="/" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                   ← Dashboard
                 </a>
@@ -101,9 +111,134 @@
             </div>
           </div>
           
-          <!-- Clusters container -->
+          <!-- Clusters container (detailed view) -->
           <div id="clusters-container" class="space-y-8">
             <!-- Clusters with titles will be rendered here -->
+          </div>
+          
+          <!-- Plain text container -->
+          <div id="plain-text-container" class="hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">📄 All FAQ Titles (Plain Text)</h3>
+              
+              <!-- Filter Toolbar -->
+              <div id="filter-toolbar" class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
+                <div class="flex flex-col lg:flex-row gap-4">
+                  <!-- Filter Controls -->
+                  <div class="flex flex-col sm:flex-row gap-3 flex-1">
+                    <!-- Date Filter -->
+                    <div class="flex-1 min-w-0 relative">
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">📅 Date</label>
+                      <div class="relative">
+                        <button id="date-filter-btn" class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-left flex justify-between items-center">
+                          <span id="date-filter-text">Date (0 selected)</span>
+                          <svg class="w-4 h-4 transition-transform" id="date-filter-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                        </button>
+                        <div id="date-filter-dropdown" class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg hidden">
+                          <div class="p-2">
+                            <div class="flex justify-between mb-2">
+                              <button id="date-select-all" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Select All</button>
+                              <button id="date-deselect-all" class="text-xs text-gray-500 dark:text-gray-400 hover:underline">Deselect All</button>
+                            </div>
+                            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded">
+                              <input type="checkbox" value="today" class="date-filter-checkbox mr-2">
+                              <span class="text-sm">Today</span>
+                            </label>
+                            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded">
+                              <input type="checkbox" value="week" class="date-filter-checkbox mr-2">
+                              <span class="text-sm">This Week</span>
+                            </label>
+                            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded">
+                              <input type="checkbox" value="month" class="date-filter-checkbox mr-2">
+                              <span class="text-sm">This Month</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Cluster Filter -->
+                    <div class="flex-1 min-w-0 relative">
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">🏷️ Cluster</label>
+                      <div class="relative">
+                        <button id="cluster-filter-btn" class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-left flex justify-between items-center">
+                          <span id="cluster-filter-text">Cluster (0 selected)</span>
+                          <svg class="w-4 h-4 transition-transform" id="cluster-filter-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                        </button>
+                        <div id="cluster-filter-dropdown" class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg hidden max-h-60 overflow-y-auto">
+                          <div class="p-2">
+                            <div class="flex justify-between mb-2">
+                              <button id="cluster-select-all" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Select All</button>
+                              <button id="cluster-deselect-all" class="text-xs text-gray-500 dark:text-gray-400 hover:underline">Deselect All</button>
+                            </div>
+                            <div id="cluster-options">
+                              <!-- Cluster options will be populated dynamically -->
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Quality Filter -->
+                    <div class="flex-1 min-w-0 relative">
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">⭐ Quality</label>
+                      <div class="relative">
+                        <button id="quality-filter-btn" class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-left flex justify-between items-center">
+                          <span id="quality-filter-text">Quality (0 selected)</span>
+                          <svg class="w-4 h-4 transition-transform" id="quality-filter-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                        </button>
+                        <div id="quality-filter-dropdown" class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg hidden">
+                          <div class="p-2">
+                            <div class="flex justify-between mb-2">
+                              <button id="quality-select-all" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Select All</button>
+                              <button id="quality-deselect-all" class="text-xs text-gray-500 dark:text-gray-400 hover:underline">Deselect All</button>
+                            </div>
+                            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded">
+                              <input type="checkbox" value="high" class="quality-filter-checkbox mr-2">
+                              <span class="text-sm">High (>80%)</span>
+                            </label>
+                            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded">
+                              <input type="checkbox" value="medium" class="quality-filter-checkbox mr-2">
+                              <span class="text-sm">Medium (50-80%)</span>
+                            </label>
+                            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded">
+                              <input type="checkbox" value="low" class="quality-filter-checkbox mr-2">
+                              <span class="text-sm">Low (<50%)</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Action Buttons -->
+                  <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-end">
+                    <button id="clear-filters" class="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                      🗑️ Clear Filters
+                    </button>
+                    <div id="filter-status" class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                      <span id="filtered-count">0</span> of <span id="total-count">0</span> titles
+                      <span id="active-filters" class="ml-2 text-blue-600 dark:text-blue-400 font-medium"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 font-mono text-sm">
+                <div id="plain-text-content" class="whitespace-pre-line text-gray-700 dark:text-gray-300">
+                  <!-- Plain text titles will be rendered here -->
+                </div>
+              </div>
+              <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                💡 Tip: Use Ctrl+A (Cmd+A on Mac) to select all titles, then copy with Ctrl+C (Cmd+C on Mac)
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -128,6 +263,14 @@
   <script>
     let currentProject = null;
     let titlesData = null;
+    let currentViewMode = 'detailed'; // 'detailed' or 'plain'
+    
+    // Filter state - now using arrays for multi-select
+    let filterState = {
+      date: [],
+      cluster: [],
+      quality: []
+    };
     
     // Extract project ID from URL query parameter or path
     const urlParams = new URLSearchParams(window.location.search);
@@ -217,7 +360,66 @@
       document.getElementById('titles-count').textContent = titlesData.total_titles;
       document.getElementById('clusters-count').textContent = titlesData.clusters_with_content;
       
-      // Render clusters
+      // Setup view switcher
+      setupViewSwitcher();
+      
+      // Render initial view
+      renderCurrentView();
+      
+      // Setup export button
+      document.getElementById('export-titles').addEventListener('click', exportTitles);
+      
+      // Setup filters
+      setupFilters();
+    }
+    
+    function setupViewSwitcher() {
+      const detailedBtn = document.getElementById('detailed-view-btn');
+      const plainBtn = document.getElementById('plain-view-btn');
+      
+      detailedBtn.addEventListener('click', () => switchView('detailed'));
+      plainBtn.addEventListener('click', () => switchView('plain'));
+    }
+    
+    function switchView(viewMode) {
+      if (currentViewMode === viewMode) return;
+      
+      currentViewMode = viewMode;
+      updateViewButtons();
+      renderCurrentView();
+    }
+    
+    function updateViewButtons() {
+      const detailedBtn = document.getElementById('detailed-view-btn');
+      const plainBtn = document.getElementById('plain-view-btn');
+      
+      if (currentViewMode === 'detailed') {
+        detailedBtn.className = 'px-3 py-1 text-sm font-medium rounded-md transition-colors bg-blue-500 text-white';
+        plainBtn.className = 'px-3 py-1 text-sm font-medium rounded-md transition-colors text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white';
+      } else {
+        detailedBtn.className = 'px-3 py-1 text-sm font-medium rounded-md transition-colors text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white';
+        plainBtn.className = 'px-3 py-1 text-sm font-medium rounded-md transition-colors bg-blue-500 text-white';
+      }
+    }
+    
+    function renderCurrentView() {
+      const clustersContainer = document.getElementById('clusters-container');
+      const plainTextContainer = document.getElementById('plain-text-container');
+      
+      if (currentViewMode === 'detailed') {
+        // Show detailed view
+        clustersContainer.classList.remove('hidden');
+        plainTextContainer.classList.add('hidden');
+        renderDetailedView();
+      } else {
+        // Show plain text view
+        clustersContainer.classList.add('hidden');
+        plainTextContainer.classList.remove('hidden');
+        renderPlainTextView();
+      }
+    }
+    
+    function renderDetailedView() {
       const container = document.getElementById('clusters-container');
       container.innerHTML = '';
       
@@ -225,9 +427,34 @@
         const clusterElement = createClusterSection(clusterName, clusterData);
         container.appendChild(clusterElement);
       });
+    }
+    
+    function renderPlainTextView() {
+      const plainTextContent = document.getElementById('plain-text-content');
+      const allTitles = [];
+      const filteredTitles = [];
       
-      // Setup export button
-      document.getElementById('export-titles').addEventListener('click', exportTitles);
+      // Collect all titles from all clusters
+      Object.entries(titlesData.by_cluster).forEach(([clusterName, clusterData]) => {
+        clusterData.titles.forEach(title => {
+          allTitles.push({
+            content: title.content,
+            cluster: clusterName,
+            created_at: title.created_at,
+            is_approved: title.is_approved,
+            quality_score: title.quality_score
+          });
+        });
+      });
+      
+      // Apply filters
+      const filtered = applyFilters(allTitles);
+      
+      // Update filter counts
+      updateFilterCounts(filtered.length, allTitles.length);
+      
+      // Display filtered titles one per line
+      plainTextContent.textContent = filtered.map(title => title.content).join('\n');
     }
     
     function createClusterSection(clusterName, clusterData) {
@@ -291,6 +518,309 @@
           </div>
         </div>
       `;
+    }
+    
+    function setupFilters() {
+      // Populate cluster filter options
+      const clusterOptions = document.getElementById('cluster-options');
+      const clusters = Object.keys(titlesData.by_cluster);
+      
+      clusters.forEach(clusterName => {
+        const label = document.createElement('label');
+        label.className = 'flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded';
+        label.innerHTML = `
+          <input type="checkbox" value="${clusterName}" class="cluster-filter-checkbox mr-2">
+          <span class="text-sm">${clusterName}</span>
+        `;
+        clusterOptions.appendChild(label);
+      });
+      
+      // Setup dropdown toggles
+      setupDropdownToggle('date');
+      setupDropdownToggle('cluster');
+      setupDropdownToggle('quality');
+      
+      // Add event listeners for checkboxes
+      document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('date-filter-checkbox') ||
+            e.target.classList.contains('cluster-filter-checkbox') ||
+            e.target.classList.contains('quality-filter-checkbox')) {
+          handleFilterChange();
+        }
+      });
+      
+      // Setup select/deselect all buttons
+      setupSelectAllButtons();
+      
+      // Clear filters button
+      document.getElementById('clear-filters').addEventListener('click', clearFilters);
+      
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', closeDropdownsOnOutsideClick);
+      
+      // Initial filter count update
+      updateFilterDisplay();
+      if (currentViewMode === 'plain') {
+        renderPlainTextView();
+      }
+    }
+    
+    function setupDropdownToggle(filterType) {
+      const btn = document.getElementById(`${filterType}-filter-btn`);
+      const dropdown = document.getElementById(`${filterType}-filter-dropdown`);
+      const arrow = document.getElementById(`${filterType}-filter-arrow`);
+      
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        // Close other dropdowns
+        ['date', 'cluster', 'quality'].forEach(type => {
+          if (type !== filterType) {
+            document.getElementById(`${type}-filter-dropdown`).classList.add('hidden');
+            document.getElementById(`${type}-filter-arrow`).style.transform = 'rotate(0deg)';
+          }
+        });
+        
+        // Toggle current dropdown
+        const isHidden = dropdown.classList.contains('hidden');
+        if (isHidden) {
+          dropdown.classList.remove('hidden');
+          arrow.style.transform = 'rotate(180deg)';
+        } else {
+          dropdown.classList.add('hidden');
+          arrow.style.transform = 'rotate(0deg)';
+        }
+      });
+    }
+    
+    function setupSelectAllButtons() {
+      // Date filter
+      document.getElementById('date-select-all').addEventListener('click', () => {
+        document.querySelectorAll('.date-filter-checkbox').forEach(cb => {
+          cb.checked = true;
+        });
+        handleFilterChange();
+      });
+      
+      document.getElementById('date-deselect-all').addEventListener('click', () => {
+        document.querySelectorAll('.date-filter-checkbox').forEach(cb => {
+          cb.checked = false;
+        });
+        handleFilterChange();
+      });
+      
+      // Cluster filter
+      document.getElementById('cluster-select-all').addEventListener('click', () => {
+        document.querySelectorAll('.cluster-filter-checkbox').forEach(cb => {
+          cb.checked = true;
+        });
+        handleFilterChange();
+      });
+      
+      document.getElementById('cluster-deselect-all').addEventListener('click', () => {
+        document.querySelectorAll('.cluster-filter-checkbox').forEach(cb => {
+          cb.checked = false;
+        });
+        handleFilterChange();
+      });
+      
+      // Quality filter
+      document.getElementById('quality-select-all').addEventListener('click', () => {
+        document.querySelectorAll('.quality-filter-checkbox').forEach(cb => {
+          cb.checked = true;
+        });
+        handleFilterChange();
+      });
+      
+      document.getElementById('quality-deselect-all').addEventListener('click', () => {
+        document.querySelectorAll('.quality-filter-checkbox').forEach(cb => {
+          cb.checked = false;
+        });
+        handleFilterChange();
+      });
+    }
+    
+    function closeDropdownsOnOutsideClick(e) {
+      if (!e.target.closest('#filter-toolbar')) {
+        ['date', 'cluster', 'quality'].forEach(type => {
+          document.getElementById(`${type}-filter-dropdown`).classList.add('hidden');
+          document.getElementById(`${type}-filter-arrow`).style.transform = 'rotate(0deg)';
+        });
+      }
+    }
+    
+    function handleFilterChange() {
+      // Update filter state based on checked checkboxes
+      filterState.date = Array.from(document.querySelectorAll('.date-filter-checkbox:checked')).map(cb => cb.value);
+      filterState.cluster = Array.from(document.querySelectorAll('.cluster-filter-checkbox:checked')).map(cb => cb.value);
+      filterState.quality = Array.from(document.querySelectorAll('.quality-filter-checkbox:checked')).map(cb => cb.value);
+      
+      // Update display
+      updateFilterDisplay();
+      
+      // Re-render if in plain text view
+      if (currentViewMode === 'plain') {
+        renderPlainTextView();
+      }
+      
+      updateActiveFiltersDisplay();
+    }
+    
+    function updateFilterDisplay() {
+      // Update date filter button text
+      const dateText = filterState.date.length === 0 ? 'Date (0 selected)' : `Date (${filterState.date.length} selected)`;
+      document.getElementById('date-filter-text').textContent = dateText;
+      
+      // Update cluster filter button text
+      const clusterText = filterState.cluster.length === 0 ? 'Cluster (0 selected)' : `Cluster (${filterState.cluster.length} selected)`;
+      document.getElementById('cluster-filter-text').textContent = clusterText;
+      
+      // Update quality filter button text
+      const qualityText = filterState.quality.length === 0 ? 'Quality (0 selected)' : `Quality (${filterState.quality.length} selected)`;
+      document.getElementById('quality-filter-text').textContent = qualityText;
+    }
+    
+    function clearFilters() {
+      filterState = {
+        date: [],
+        cluster: [],
+        quality: []
+      };
+      
+      // Uncheck all checkboxes
+      document.querySelectorAll('.date-filter-checkbox, .cluster-filter-checkbox, .quality-filter-checkbox').forEach(cb => {
+        cb.checked = false;
+      });
+      
+      // Update display
+      updateFilterDisplay();
+      
+      // Re-render if in plain text view
+      if (currentViewMode === 'plain') {
+        renderPlainTextView();
+      }
+      
+      updateActiveFiltersDisplay();
+    }
+    
+    function applyFilters(titles) {
+      return titles.filter(title => {
+        // Date filter - if any date filters are selected, title must match at least one
+        if (filterState.date.length > 0) {
+          const titleDate = new Date(title.created_at);
+          const now = new Date();
+          let dateMatches = false;
+          
+          for (const dateFilter of filterState.date) {
+            switch (dateFilter) {
+              case 'today':
+                if (titleDate.toDateString() === now.toDateString()) {
+                  dateMatches = true;
+                }
+                break;
+              case 'week':
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                if (titleDate >= weekAgo) {
+                  dateMatches = true;
+                }
+                break;
+              case 'month':
+                const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+                if (titleDate >= monthAgo) {
+                  dateMatches = true;
+                }
+                break;
+            }
+          }
+          
+          if (!dateMatches) return false;
+        }
+        
+        // Cluster filter - if any cluster filters are selected, title must match at least one
+        if (filterState.cluster.length > 0 && !filterState.cluster.includes(title.cluster)) {
+          return false;
+        }
+        
+        // Quality filter - if any quality filters are selected, title must match at least one
+        if (filterState.quality.length > 0) {
+          if (title.quality_score === null || title.quality_score === undefined) {
+            return false; // Exclude titles without quality scores when quality filter is active
+          }
+          
+          const qualityPercent = title.quality_score * 100;
+          let qualityMatches = false;
+          
+          for (const qualityFilter of filterState.quality) {
+            switch (qualityFilter) {
+              case 'high':
+                if (qualityPercent > 80) {
+                  qualityMatches = true;
+                }
+                break;
+              case 'medium':
+                if (qualityPercent > 50 && qualityPercent <= 80) {
+                  qualityMatches = true;
+                }
+                break;
+              case 'low':
+                if (qualityPercent <= 50) {
+                  qualityMatches = true;
+                }
+                break;
+            }
+          }
+          
+          if (!qualityMatches) return false;
+        }
+        
+        return true;
+      });
+    }
+    
+    function updateFilterCounts(filteredCount, totalCount) {
+      document.getElementById('filtered-count').textContent = filteredCount;
+      document.getElementById('total-count').textContent = totalCount;
+    }
+    
+    function updateActiveFiltersDisplay() {
+      const activeFilters = [];
+      
+      if (filterState.date.length > 0) {
+        const dateLabels = {
+          today: 'Today',
+          week: 'This Week',
+          month: 'This Month'
+        };
+        const dateNames = filterState.date.map(d => dateLabels[d]).join(', ');
+        activeFilters.push(`📅 ${dateNames}`);
+      }
+      
+      if (filterState.cluster.length > 0) {
+        const clusterNames = filterState.cluster.length > 2 ? 
+          `${filterState.cluster.slice(0, 2).join(', ')} +${filterState.cluster.length - 2} more` :
+          filterState.cluster.join(', ');
+        activeFilters.push(`🏷️ ${clusterNames}`);
+      }
+      
+      if (filterState.quality.length > 0) {
+        const qualityLabels = {
+          high: 'High',
+          medium: 'Medium',
+          low: 'Low'
+        };
+        const qualityNames = filterState.quality.map(q => qualityLabels[q]).join(', ');
+        activeFilters.push(`⭐ ${qualityNames}`);
+      }
+      
+      const activeFiltersElement = document.getElementById('active-filters');
+      if (activeFilters.length > 0) {
+        const totalSelected = filterState.date.length + filterState.cluster.length + filterState.quality.length;
+        activeFiltersElement.textContent = `(${totalSelected} filters active)`;
+        activeFiltersElement.title = activeFilters.join(', ');
+      } else {
+        activeFiltersElement.textContent = '';
+        activeFiltersElement.title = '';
+      }
     }
     
     function exportTitles() {

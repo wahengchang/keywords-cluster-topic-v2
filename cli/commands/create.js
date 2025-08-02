@@ -87,16 +87,24 @@ class CreateCommand {
         return;
       }
 
+      // Helper function to normalize URL
+      const normalizeUrl = (url) => {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          return 'https://' + url;
+        }
+        return url;
+      };
+
       // Generate project name from target
       const projectName = projectDetails.method === 'Domain' 
         ? projectDetails.target.replace(/[^a-zA-Z0-9]/g, '_')
-        : new URL(projectDetails.target).hostname.replace(/[^a-zA-Z0-9]/g, '_');
+        : new URL(normalizeUrl(projectDetails.target)).hostname.replace(/[^a-zA-Z0-9]/g, '_');
 
       // Combine parameters
       const params = {
         name: projectName,
         method: projectDetails.method,
-        target: projectDetails.target,
+        target: projectDetails.method === 'URL' ? normalizeUrl(projectDetails.target) : projectDetails.target,
         database: dbConfig.database,
         limit: dbConfig.limit
       };
@@ -197,7 +205,7 @@ class CreateCommand {
           if (expandedKeywords && expandedKeywords.length > 0) {
             // Save expanded keywords to database
             const db = await getDatabase();
-            await this.saveExpandedKeywords(db, project.id, cluster.id, expandedKeywords);
+            await this.saveExpandedKeywords(db, project.id, cluster.id, expandedKeywords, result.run.id);
             
             expandedData[cluster.id] = expandedKeywords;
             totalExpandedKeywords += expandedKeywords.length;
@@ -359,7 +367,7 @@ class CreateCommand {
         INSERT INTO generated_content (
           project_id, run_id, content_type, content, cluster_id,
           ai_model, word_count, character_count, is_approved, created_at
-        ) VALUES (?, ?, 'title', ?, ?, 'gpt-3.5-turbo', ?, ?, 0, datetime('now'))
+        ) VALUES (?, ?, 'title', ?, ?, 'gpt-4o-mini', ?, ?, 0, datetime('now'))
       `;
       
       const insertStmt = db.prepare(insertQuery);
@@ -380,14 +388,14 @@ class CreateCommand {
     }
   }
   
-  async saveExpandedKeywords(db, projectId, clusterId, expandedKeywords) {
+  async saveExpandedKeywords(db, projectId, clusterId, expandedKeywords, runId) {
     try {
       const insertQuery = `
         INSERT INTO keywords (
-          project_id, cluster_id, keyword, search_volume, intent, priority_score,
+          project_id, run_id, cluster_id, keyword, search_volume, intent, priority_score,
           difficulty_score, competition, cpc, trends, 
           cleaned_keyword, expansion_type, metadata, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, '', ?, ?, 'expansion', datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, '', ?, ?, 'expansion', datetime('now'))
       `;
       
       const insertStmt = db.prepare(insertQuery);
@@ -395,6 +403,7 @@ class CreateCommand {
       for (const keyword of expandedKeywords) {
         insertStmt.run(
           projectId,
+          runId,
           clusterId,
           keyword.keyword,
           keyword.search_volume || 0,

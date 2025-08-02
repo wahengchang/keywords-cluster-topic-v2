@@ -106,6 +106,8 @@ class DatabaseSchema {
         is_question BOOLEAN DEFAULT FALSE,
         is_duplicate BOOLEAN DEFAULT FALSE,
         duplicate_of_id INTEGER,
+        expansion_type TEXT CHECK(expansion_type IN ('original', 'related', 'semantic', 'competitor', 'long_tail')),
+        source TEXT,
         metadata TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
@@ -275,7 +277,20 @@ class DatabaseSchema {
   }
 
   static insertDefaults(db) {
-    // Insert any default data if needed
+    // Set initial schema version for new databases
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    db.prepare(`
+      INSERT OR REPLACE INTO metadata (key, value, updated_at)
+      VALUES ('schema_version', '1', CURRENT_TIMESTAMP)
+    `).run();
+    
     console.log('Database schema and indexes created successfully');
   }
 }

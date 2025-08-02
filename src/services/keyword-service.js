@@ -172,6 +172,14 @@ class KeywordService {
       await this.processingRunModel.updateProgress(run.id, 'clustering', 5, 62);
       const clusters = await this.clusteringService.performAdvancedClustering(uniqueKeywords);
       
+      // Assign cluster IDs and names to keywords
+      clusters.forEach((cluster, cid) => {
+        cluster.keywords.forEach(k => {
+          k.cluster_id = cid;
+          k.cluster_name = cluster.name;
+        });
+      });
+      
       // STAGE 6: Priority Scoring
       await this.processingRunModel.updateProgress(run.id, 'scoring', 6, 75);
       const scoredKeywords = await this.priorityService.calculatePriorityScores(uniqueKeywords, clusters);

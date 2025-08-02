@@ -457,7 +457,7 @@ class WriteMoreCommand {
         INSERT INTO generated_content (
           project_id, run_id, content_type, content, cluster_id,
           ai_model, word_count, character_count, is_approved, created_at
-        ) VALUES (?, ?, 'title', ?, ?, 'gpt-3.5-turbo', ?, ?, 0, datetime('now'))
+        ) VALUES (?, ?, 'title', ?, ?, 'gpt-4o-mini', ?, ?, 0, datetime('now'))
       `;
       
       const insertStmt = this.db.prepare(insertQuery);

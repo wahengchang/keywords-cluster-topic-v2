@@ -95,13 +95,20 @@ export const ProjectCardsComponent = {
             </div>
             
             <!-- Quick Actions -->
-            <div class="flex items-center justify-between gap-2" @click.stop>
+            <div class="flex items-center justify-between gap-1" @click.stop>
               <a 
                 :href="'/project.html?id=' + project.id" 
                 class="flex-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-center"
                 @click.stop
               >
-                🗂️ Keywords
+                📊 Project
+              </a>
+              <a 
+                :href="'/keywords?project=' + project.id" 
+                class="flex-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-center"
+                @click.stop
+              >
+                🔍 Keywords
               </a>
               <a 
                 v-if="project.has_faq_titles"
@@ -109,7 +116,7 @@ export const ProjectCardsComponent = {
                 class="flex-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-center"
                 @click.stop
               >
-                📝 FAQ Titles
+                📝 Titles
               </a>
             </div>
           </div>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keywords Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body class="bg-primary text-primary">
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-green-600 to-blue-600 shadow-lg">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <!-- Left: Logo and navigation -->
+          <div class="flex items-center space-x-8">
+            <a href="/" class="text-white text-xl font-bold hover:text-green-200 transition-colors">
+              📊 Keywords Cluster Tool
+            </a>
+            <nav class="hidden md:flex items-center space-x-4 text-sm">
+              <a href="/" class="text-green-100 hover:text-white transition-colors px-3 py-2 rounded-md">Dashboard</a>
+              <span class="text-green-200">›</span>
+              <span id="project-name-breadcrumb" class="text-green-100">Project</span>
+              <span class="text-green-200">›</span>
+              <span class="text-white font-medium">Keywords</span>
+            </nav>
+          </div>
+          
+          <!-- Right: Control buttons -->
+          <div class="flex items-center space-x-3">
+            <button id="theme-toggle" class="relative w-12 h-6 bg-white bg-opacity-20 rounded-full transition-all duration-200 cursor-pointer">
+              <div id="theme-slider" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 shadow-sm"></div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Main content -->
+    <main class="flex-1 bg-gray-50 dark:bg-gray-900">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading state -->
+        <div id="loading" class="text-center py-16">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full mb-6">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
+          </div>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Loading Keywords</h2>
+          <p class="text-gray-600 dark:text-gray-400">Fetching keyword data...</p>
+        </div>
+      
+        <!-- Project info -->
+        <div id="project-info" class="mb-8 hidden">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-3">🎯 Keywords Analysis</h1>
+          <p class="text-lg text-gray-600 dark:text-gray-400" id="project-subtitle">Loading...</p>
+        </div>
+      
+        <!-- No keywords message -->
+        <div id="no-keywords" class="text-center py-16 hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 max-w-2xl mx-auto">
+            <div class="text-8xl mb-6">🔍</div>
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">No Keywords Found</h2>
+            <p class="text-xl text-gray-600 dark:text-gray-400 mb-6">This project doesn't have any keyword data.</p>
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 mb-8">
+              <p class="text-blue-800 dark:text-blue-200 font-medium">💡 Getting Started</p>
+              <p class="text-blue-700 dark:text-blue-300 mt-2">Use the CLI command "Create Project" or "Rescrape" to fetch keyword data from SEMrush.</p>
+            </div>
+            <a href="/" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white font-semibold rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 shadow-lg">
+              ← Back to Dashboard
+            </a>
+          </div>
+        </div>
+      
+        <!-- Keywords content -->
+        <div id="keywords-content" class="hidden">
+          <!-- Stats and controls -->
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div class="flex items-center space-x-6">
+                <div class="text-center">
+                  <div id="keywords-count" class="text-2xl font-bold text-green-600 dark:text-green-400">0</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Total Keywords</div>
+                </div>
+                <div class="text-center">
+                  <div id="clusters-count" class="text-2xl font-bold text-blue-600 dark:text-blue-400">0</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Clusters</div>
+                </div>
+                <div class="text-center">
+                  <div id="avg-volume" class="text-2xl font-bold text-purple-600 dark:text-purple-400">0</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Avg Volume</div>
+                </div>
+              </div>
+              <div class="flex flex-wrap space-x-3">
+                <a href="/" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  ← Dashboard
+                </a>
+                <a id="project-link" href="#" class="px-4 py-2 bg-blue-100 dark:bg-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-600 transition-colors">
+                  📊 Project View
+                </a>
+                <a id="titles-link" href="#" class="px-4 py-2 bg-purple-100 dark:bg-purple-700 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-600 transition-colors hidden">
+                  📝 FAQ Titles
+                </a>
+                <button id="export-keywords" class="px-4 py-2 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-md">
+                  📊 Export CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters Panel -->
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col lg:flex-row gap-6">
+              <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search Keywords</label>
+                <input type="text" id="search-input" placeholder="Search by keyword..." class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              </div>
+              <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cluster Filter</label>
+                <select id="cluster-filter" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                  <option value="">All Clusters</option>
+                </select>
+              </div>
+              <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Min Search Volume</label>
+                <input type="number" id="volume-filter" placeholder="0" min="0" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              </div>
+              <div class="flex items-end">
+                <button id="clear-filters" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Keywords Table -->
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full" id="keywords-table">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" data-sort="keyword">
+                      Keyword <span class="sort-indicator"></span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" data-sort="search_volume">
+                      Volume <span class="sort-indicator"></span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" data-sort="kd">
+                      KD <span class="sort-indicator"></span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" data-sort="competition">
+                      Competition <span class="sort-indicator"></span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" data-sort="cpc">
+                      CPC <span class="sort-indicator"></span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" data-sort="cluster_name">
+                      Cluster <span class="sort-indicator"></span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="keywords-tbody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  <!-- Table rows will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 border-t border-gray-200 dark:border-gray-600 sm:px-6">
+              <div class="flex items-center justify-between">
+                <div class="flex-1 flex justify-between sm:hidden">
+                  <button id="prev-mobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                    Previous
+                  </button>
+                  <button id="next-mobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                    Next
+                  </button>
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                      Showing <span id="pagination-start">1</span> to <span id="pagination-end">10</span> of <span id="pagination-total">0</span> results
+                    </p>
+                  </div>
+                  <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button id="prev-desktop" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                        Previous
+                      </button>
+                      <div id="pagination-numbers" class="flex">
+                        <!-- Page numbers will be populated by JavaScript -->
+                      </div>
+                      <button id="next-desktop" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                        Next
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-800 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex items-center justify-between">
+          <span id="status-text" class="text-sm text-gray-400">Ready</span>
+          <div class="text-xs text-gray-500">
+            Keywords Cluster Tool © 2024
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="js/theme-handler.js"></script>
+  
+  <script>
+    let currentProject = null;
+    let keywordsData = null;
+    let filteredKeywords = [];
+    let currentPage = 1;
+    let itemsPerPage = 50;
+    let sortField = 'search_volume';
+    let sortOrder = 'desc';
+    
+    // Extract project ID from URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    let projectId = urlParams.get('project');
+    
+    if (!projectId) {
+      alert('No project ID specified. Please use /keywords?project=123 format.');
+      window.location.href = '/';
+    }
+    
+    // Load project and keywords data
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        console.log('Loading keywords for project:', projectId);
+        
+        // Load dashboard to get project info
+        const dashboardResponse = await fetch('/api/dashboard');
+        const dashboardData = await dashboardResponse.json();
+        
+        // Find current project
+        currentProject = dashboardData.projects.find(p => p.id == projectId);
+        if (currentProject) {
+          document.getElementById('project-name-breadcrumb').textContent = currentProject.name;
+          document.title = `Keywords - ${currentProject.name}`;
+        } else {
+          document.getElementById('project-name-breadcrumb').textContent = `Project ${projectId}`;
+          document.title = `Keywords - Project ${projectId}`;
+        }
+        
+        // Set up navigation links
+        document.getElementById('project-link').href = `/project.html?id=${projectId}`;
+        document.getElementById('titles-link').href = `/titles?project=${projectId}`;
+        
+        // Load keywords data
+        const keywordsResponse = await fetch(`/api/keywords/${projectId}`);
+        if (!keywordsResponse.ok) {
+          throw new Error(`Failed to load keywords: ${keywordsResponse.status}`);
+        }
+        
+        keywordsData = await keywordsResponse.json();
+        console.log('Keywords data:', keywordsData);
+        
+        // Check if project has FAQ titles and show link
+        try {
+          const titlesResponse = await fetch(`/api/generated-content/${projectId}`);
+          if (titlesResponse.ok) {
+            const titlesData = await titlesResponse.json();
+            if (titlesData.total_titles > 0) {
+              document.getElementById('titles-link').classList.remove('hidden');
+            }
+          }
+        } catch (error) {
+          console.log('No FAQ titles found for this project');
+        }
+        
+        // Hide loading
+        document.getElementById('loading').classList.add('hidden');
+        
+        if (!keywordsData.keywords || keywordsData.keywords.length === 0) {
+          // Show no keywords message
+          document.getElementById('no-keywords').classList.remove('hidden');
+        } else {
+          // Show keywords
+          displayKeywords();
+        }
+        
+      } catch (error) {
+        console.error('Failed to load keywords:', error);
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('status-text').textContent = 'Error: ' + error.message;
+        
+        // Show error message
+        document.body.innerHTML += `
+          <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded max-w-md">
+              <strong class="font-bold">Error loading keywords:</strong>
+              <span class="block sm:inline"> ${error.message}</span>
+              <div class="mt-4">
+                <a href="/" class="text-blue-600 hover:text-blue-800">← Back to Dashboard</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    });
+    
+    function displayKeywords() {
+      // Show project info
+      document.getElementById('project-info').classList.remove('hidden');
+      document.getElementById('project-subtitle').textContent = 
+        `${currentProject.name} - ${keywordsData.keywords.length} keywords across ${keywordsData.clusters?.length || 0} clusters`;
+      
+      // Show keywords content
+      document.getElementById('keywords-content').classList.remove('hidden');
+      
+      // Update stats
+      const keywords = keywordsData.keywords;
+      const avgVolume = keywords.length > 0 ? Math.round(keywords.reduce((sum, k) => sum + (k.search_volume || 0), 0) / keywords.length) : 0;
+      
+      document.getElementById('keywords-count').textContent = keywords.length.toLocaleString();
+      document.getElementById('clusters-count').textContent = (keywordsData.clusters?.length || 0).toString();
+      document.getElementById('avg-volume').textContent = avgVolume.toLocaleString();
+      
+      // Populate cluster filter
+      populateClusterFilter();
+      
+      // Apply initial filter and display
+      applyFilters();
+      
+      // Setup event listeners
+      setupEventListeners();
+    }
+    
+    function populateClusterFilter() {
+      const clusterFilter = document.getElementById('cluster-filter');
+      const clusters = [...new Set(keywordsData.keywords.map(k => k.cluster_name).filter(Boolean))].sort();
+      
+      clusterFilter.innerHTML = '<option value="">All Clusters</option>';
+      clusters.forEach(cluster => {
+        const option = document.createElement('option');
+        option.value = cluster;
+        option.textContent = cluster;
+        clusterFilter.appendChild(option);
+      });
+    }
+    
+    function setupEventListeners() {
+      // Search and filter inputs
+      document.getElementById('search-input').addEventListener('input', debounce(applyFilters, 300));
+      document.getElementById('cluster-filter').addEventListener('change', applyFilters);
+      document.getElementById('volume-filter').addEventListener('input', debounce(applyFilters, 300));
+      document.getElementById('clear-filters').addEventListener('click', clearFilters);
+      
+      // Export button
+      document.getElementById('export-keywords').addEventListener('click', exportKeywords);
+      
+      // Sort headers
+      document.querySelectorAll('[data-sort]').forEach(header => {
+        header.addEventListener('click', () => {
+          const field = header.dataset.sort;
+          if (sortField === field) {
+            sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+          } else {
+            sortField = field;
+            sortOrder = 'desc';
+          }
+          updateSortIndicators();
+          applyFilters();
+        });
+      });
+      
+      // Pagination
+      document.getElementById('prev-mobile').addEventListener('click', () => changePage(currentPage - 1));
+      document.getElementById('next-mobile').addEventListener('click', () => changePage(currentPage + 1));
+      document.getElementById('prev-desktop').addEventListener('click', () => changePage(currentPage - 1));
+      document.getElementById('next-desktop').addEventListener('click', () => changePage(currentPage + 1));
+    }
+    
+    function applyFilters() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      const clusterFilter = document.getElementById('cluster-filter').value;
+      const volumeFilter = parseInt(document.getElementById('volume-filter').value) || 0;
+      
+      filteredKeywords = keywordsData.keywords.filter(keyword => {
+        const matchesSearch = !searchTerm || (keyword.keyword && keyword.keyword.toLowerCase().includes(searchTerm));
+        const matchesCluster = !clusterFilter || keyword.cluster_name === clusterFilter;
+        const matchesVolume = (keyword.search_volume || 0) >= volumeFilter;
+        
+        return matchesSearch && matchesCluster && matchesVolume;
+      });
+      
+      // Sort keywords
+      sortKeywords();
+      
+      // Reset to first page
+      currentPage = 1;
+      
+      // Display results
+      displayKeywordsTable();
+      updatePagination();
+    }
+    
+    function sortKeywords() {
+      filteredKeywords.sort((a, b) => {
+        let aVal = a[sortField];
+        let bVal = b[sortField];
+        
+        // Handle null/undefined values
+        if (aVal == null) aVal = sortField === 'keyword' ? '' : 0;
+        if (bVal == null) bVal = sortField === 'keyword' ? '' : 0;
+        
+        // String comparison for text fields
+        if (typeof aVal === 'string') {
+          return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        
+        // Numeric comparison
+        return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      });
+    }
+    
+    function displayKeywordsTable() {
+      const tbody = document.getElementById('keywords-tbody');
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const pageKeywords = filteredKeywords.slice(startIndex, endIndex);
+      
+      tbody.innerHTML = '';
+      
+      pageKeywords.forEach(keyword => {
+        const row = createKeywordRow(keyword);
+        tbody.appendChild(row);
+      });
+    }
+    
+    function createKeywordRow(keyword) {
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
+      
+      const kdColor = (keyword.kd || 0) <= 30 ? 'text-green-600' : (keyword.kd || 0) <= 60 ? 'text-yellow-600' : 'text-red-600';
+      const compPercent = ((keyword.competition || 0) * 100).toFixed(0);
+      
+      row.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="text-sm font-medium text-gray-900 dark:text-white">${keyword.keyword || 'N/A'}</div>
+          ${keyword.cluster_theme ? `<div class="text-xs text-gray-500">${keyword.cluster_theme}</div>` : ''}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+          ${(keyword.search_volume || 0).toLocaleString()}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${kdColor}">
+          ${keyword.kd || 0}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+          ${compPercent}%
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+          $${(keyword.cpc || 0).toFixed(2)}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          ${keyword.cluster_name ? `
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              ${keyword.cluster_name}
+            </span>
+          ` : '<span class="text-gray-400">Unclustered</span>'}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+          <button onclick="showKeywordDetails('${keyword.id}')" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+            View Details
+          </button>
+        </td>
+      `;
+      
+      return row;
+    }
+    
+    function updateSortIndicators() {
+      // Clear all indicators
+      document.querySelectorAll('.sort-indicator').forEach(indicator => {
+        indicator.textContent = '';
+      });
+      
+      // Set current sort indicator
+      const currentHeader = document.querySelector(`[data-sort="${sortField}"] .sort-indicator`);
+      if (currentHeader) {
+        currentHeader.textContent = sortOrder === 'asc' ? ' ↑' : ' ↓';
+      }
+    }
+    
+    function updatePagination() {
+      const totalItems = filteredKeywords.length;
+      const totalPages = Math.ceil(totalItems / itemsPerPage);
+      const startItem = (currentPage - 1) * itemsPerPage + 1;
+      const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+      
+      // Update text
+      document.getElementById('pagination-start').textContent = totalItems > 0 ? startItem : 0;
+      document.getElementById('pagination-end').textContent = endItem;
+      document.getElementById('pagination-total').textContent = totalItems;
+      
+      // Update buttons
+      const prevButtons = [document.getElementById('prev-mobile'), document.getElementById('prev-desktop')];
+      const nextButtons = [document.getElementById('next-mobile'), document.getElementById('next-desktop')];
+      
+      prevButtons.forEach(btn => btn.disabled = currentPage <= 1);
+      nextButtons.forEach(btn => btn.disabled = currentPage >= totalPages);
+    }
+    
+    function changePage(newPage) {
+      const totalPages = Math.ceil(filteredKeywords.length / itemsPerPage);
+      if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        displayKeywordsTable();
+        updatePagination();
+      }
+    }
+    
+    function clearFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('cluster-filter').value = '';
+      document.getElementById('volume-filter').value = '';
+      applyFilters();
+    }
+    
+    function exportKeywords() {
+      if (!filteredKeywords || filteredKeywords.length === 0) return;
+      
+      // Generate CSV
+      const headers = ['Keyword', 'Search Volume', 'KD', 'Competition', 'CPC', 'Cluster', 'Cluster Theme'];
+      const rows = [headers];
+      
+      filteredKeywords.forEach(keyword => {
+        rows.push([
+          keyword.keyword || '',
+          keyword.search_volume || 0,
+          keyword.kd || 0,
+          ((keyword.competition || 0) * 100).toFixed(0) + '%',
+          '$' + (keyword.cpc || 0).toFixed(2),
+          keyword.cluster_name || '',
+          keyword.cluster_theme || ''
+        ]);
+      });
+      
+      const csvContent = rows.map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+      
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `keywords-${currentProject.name.replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    function showKeywordDetails(keywordId) {
+      const keyword = keywordsData.keywords.find(k => k.id == keywordId);
+      if (!keyword) return;
+      
+      alert(`Keyword: ${keyword.keyword}\nVolume: ${keyword.search_volume}\nKD: ${keyword.kd}\nCompetition: ${((keyword.competition || 0) * 100).toFixed(0)}%\nCPC: $${(keyword.cpc || 0).toFixed(2)}\nCluster: ${keyword.cluster_name || 'N/A'}`);
+    }
+    
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+  </script>
+</body>
+</html>

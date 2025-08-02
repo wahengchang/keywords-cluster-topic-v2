@@ -13,7 +13,7 @@ const axios = require('axios');
 async function chatgptCompletion(prompt, config = {}) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY environment variable not set');
-  const model = config.model || 'gpt-3.5-turbo';
+  const model = config.model || 'gpt-4o-mini';
   const systemMessage = config.systemMessage || 'Be precise and concise.';
   const url = 'https://api.openai.com/v1/chat/completions';
   const payload = {

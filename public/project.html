@@ -27,6 +27,10 @@
       
       <!-- Right: Control buttons -->
       <div class="flex items-center gap-2">
+        <!-- Keywords Analysis link -->
+        <a id="keywords-link" href="#" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-opacity-80 transition-colors">
+          🔍 Keywords Analysis
+        </a>
         <!-- FAQ Titles link -->
         <a id="titles-link" href="#" class="px-3 py-1.5 text-sm bg-accent-green text-white rounded hover:bg-opacity-80 transition-colors hidden">
           📝 FAQ Titles
@@ -143,6 +147,10 @@
         const filteredCount = AppStore.data.filteredKeywords?.length || 0;
         document.getElementById('status-text').textContent = 
           `Loaded ${keywordCount} keywords (${filteredCount} filtered)`;
+        
+        // Set up keywords analysis link
+        const keywordsLink = document.getElementById('keywords-link');
+        keywordsLink.href = `/keywords?project=${projectId}`;
         
         // Check if project has FAQ titles and show link
         try {

@@ -5,8 +5,13 @@ function validateProjectType(method, value) {
     return `Please enter a valid ${method.toLowerCase()}`;
   }
   
-  if (method === 'URL' && !value.includes('://')) {
-    return 'Please enter a complete URL including protocol (http:// or https://)';
+  // For URL method, validate that it looks like a URL (with or without protocol)
+  if (method === 'URL') {
+    // Accept URLs with protocol or just domain/path
+    const urlPattern = /^(https?:\/\/)?[a-zA-Z0-9][a-zA-Z0-9-._]*[a-zA-Z0-9](\/[^\s]*)?$/;
+    if (!urlPattern.test(value)) {
+      return 'Please enter a valid URL (e.g., example.com/path or https://example.com/path)';
+    }
   }
   
   return true;
