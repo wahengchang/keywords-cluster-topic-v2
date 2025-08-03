@@ -15,21 +15,6 @@ Follow `git-workflow.md` for GitHub operations
 - `./src/database/schema.js` - Database schema details
 
 ## Agent Architecture (MVP)
-
-### Three-Agent System
-- **CLI & Database**: Command execution in `/cli/commands/` and database operations (general-purpose agent)
-- **Web Interface**: Frontend in `/public/` and server routes (web-interface-agent)  
-- **Core Clustering**: Clustering algorithms in `/src/services/` (core-clustering-specialist)
-
-### Agent Activation Guidelines
-- **core-clustering-specialist**: Use for K-means clustering optimization, semantic analysis, feature engineering, cluster quality improvements, or performance tuning for large datasets in `/src/services/clustering-service.js`
-- **web-interface-agent**: Use for Express.js server routes, frontend components in `/public/`, API endpoints, dashboard development, or data visualization features
-- **general-purpose**: Use for CLI commands, database operations, file management, or tasks not covered by specialized agents
-
-### Database Architecture Decision
-**No dedicated database agent** - SQLite operations are simple enough to be handled by existing agents:
-- **CLI operations**: general-purpose agent handles database management commands
-- **Data persistence**: each service handles its own database operations  
-- **Web queries**: web-interface-agent handles display and API data retrieval
+all the task will be implement by generalize-engine-agent, he is the best for the current project now.
 
 See `database-architecture-decision.md` for complete rationale and future considerations.

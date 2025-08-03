@@ -119,7 +119,17 @@
           <!-- Plain text container -->
           <div id="plain-text-container" class="hidden">
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">📄 All FAQ Titles (Plain Text)</h3>
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">📄 All FAQ Titles (Plain Text)</h3>
+                <div class="flex gap-2">
+                  <button id="mark-used-btn" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    ✅ Mark as Used
+                  </button>
+                  <button id="mark-unused-btn" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    ↩️ Mark as Unused
+                  </button>
+                </div>
+              </div>
               
               <!-- Filter Toolbar -->
               <div id="filter-toolbar" class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-700">
@@ -215,6 +225,35 @@
                         </div>
                       </div>
                     </div>
+                    
+                    <!-- Usage Status Filter -->
+                    <div class="flex-1 min-w-0 relative">
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">📝 Status</label>
+                      <div class="relative">
+                        <button id="status-filter-btn" class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-left flex justify-between items-center">
+                          <span id="status-filter-text">Status (0 selected)</span>
+                          <svg class="w-4 h-4 transition-transform" id="status-filter-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                        </button>
+                        <div id="status-filter-dropdown" class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg hidden">
+                          <div class="p-2">
+                            <div class="flex justify-between mb-2">
+                              <button id="status-select-all" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Select All</button>
+                              <button id="status-deselect-all" class="text-xs text-gray-500 dark:text-gray-400 hover:underline">Deselect All</button>
+                            </div>
+                            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded">
+                              <input type="checkbox" value="unused" class="status-filter-checkbox mr-2">
+                              <span class="text-sm">🆕 Unused</span>
+                            </label>
+                            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-600 rounded">
+                              <input type="checkbox" value="used" class="status-filter-checkbox mr-2">
+                              <span class="text-sm">✅ Used</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   <!-- Action Buttons -->
@@ -231,12 +270,12 @@
               </div>
               
               <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 font-mono text-sm">
-                <div id="plain-text-content" class="whitespace-pre-line text-gray-700 dark:text-gray-300">
+                <textarea id="plain-text-content" class="w-full h-96 bg-transparent border-none outline-none resize-none text-gray-700 dark:text-gray-300 font-mono text-sm" placeholder="Filtered titles will appear here. You can delete lines you don't want to mark as used.">
                   <!-- Plain text titles will be rendered here -->
-                </div>
+                </textarea>
               </div>
               <div class="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                💡 Tip: Use Ctrl+A (Cmd+A on Mac) to select all titles, then copy with Ctrl+C (Cmd+C on Mac)
+                💡 Tip: You can edit the text area - delete lines you don't want to mark as used. When you click "Mark as Used", only the remaining lines will be processed one by one.
               </div>
             </div>
           </div>
@@ -269,7 +308,8 @@
     let filterState = {
       date: [],
       cluster: [],
-      quality: []
+      quality: [],
+      status: []
     };
     
     // Extract project ID from URL query parameter or path
@@ -369,6 +409,10 @@
       // Setup export button
       document.getElementById('export-titles').addEventListener('click', exportTitles);
       
+      // Setup mark as used/unused buttons
+      document.getElementById('mark-used-btn').addEventListener('click', () => markFilteredTitlesAsUsed(true));
+      document.getElementById('mark-unused-btn').addEventListener('click', () => markFilteredTitlesAsUsed(false));
+      
       // Setup filters
       setupFilters();
     }
@@ -438,10 +482,12 @@
       Object.entries(titlesData.by_cluster).forEach(([clusterName, clusterData]) => {
         clusterData.titles.forEach(title => {
           allTitles.push({
+            id: title.id,
             content: title.content,
             cluster: clusterName,
             created_at: title.created_at,
             is_approved: title.is_approved,
+            is_used: title.is_used,
             quality_score: title.quality_score
           });
         });
@@ -453,8 +499,11 @@
       // Update filter counts
       updateFilterCounts(filtered.length, allTitles.length);
       
-      // Display filtered titles one per line
-      plainTextContent.textContent = filtered.map(title => title.content).join('\n');
+      // Store filtered titles data for later use
+      window.currentFilteredTitles = filtered;
+      
+      // Display filtered titles one per line in textarea
+      plainTextContent.value = filtered.map(title => title.content).join('\n');
     }
     
     function createClusterSection(clusterName, clusterData) {
@@ -492,6 +541,10 @@
         '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Approved</span>' : 
         '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">Pending</span>';
       
+      const usedBadge = title.is_used ?
+        '<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">✅ Used</span>' :
+        '<span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">🆕 Unused</span>';
+      
       const qualityScore = title.quality_score ? 
         `<span class="text-xs text-tertiary">Quality: ${(title.quality_score * 100).toFixed(0)}%</span>` : '';
       
@@ -512,8 +565,9 @@
                 </div>
               ` : ''}
             </div>
-            <div class="ml-4">
+            <div class="ml-4 flex flex-col gap-2">
               ${approvedBadge}
+              ${usedBadge}
             </div>
           </div>
         </div>
@@ -539,12 +593,14 @@
       setupDropdownToggle('date');
       setupDropdownToggle('cluster');
       setupDropdownToggle('quality');
+      setupDropdownToggle('status');
       
       // Add event listeners for checkboxes
       document.addEventListener('change', function(e) {
         if (e.target.classList.contains('date-filter-checkbox') ||
             e.target.classList.contains('cluster-filter-checkbox') ||
-            e.target.classList.contains('quality-filter-checkbox')) {
+            e.target.classList.contains('quality-filter-checkbox') ||
+            e.target.classList.contains('status-filter-checkbox')) {
           handleFilterChange();
         }
       });
@@ -574,7 +630,7 @@
         e.stopPropagation();
         
         // Close other dropdowns
-        ['date', 'cluster', 'quality'].forEach(type => {
+        ['date', 'cluster', 'quality', 'status'].forEach(type => {
           if (type !== filterType) {
             document.getElementById(`${type}-filter-dropdown`).classList.add('hidden');
             document.getElementById(`${type}-filter-arrow`).style.transform = 'rotate(0deg)';
@@ -638,11 +694,26 @@
         });
         handleFilterChange();
       });
+      
+      // Status filter
+      document.getElementById('status-select-all').addEventListener('click', () => {
+        document.querySelectorAll('.status-filter-checkbox').forEach(cb => {
+          cb.checked = true;
+        });
+        handleFilterChange();
+      });
+      
+      document.getElementById('status-deselect-all').addEventListener('click', () => {
+        document.querySelectorAll('.status-filter-checkbox').forEach(cb => {
+          cb.checked = false;
+        });
+        handleFilterChange();
+      });
     }
     
     function closeDropdownsOnOutsideClick(e) {
       if (!e.target.closest('#filter-toolbar')) {
-        ['date', 'cluster', 'quality'].forEach(type => {
+        ['date', 'cluster', 'quality', 'status'].forEach(type => {
           document.getElementById(`${type}-filter-dropdown`).classList.add('hidden');
           document.getElementById(`${type}-filter-arrow`).style.transform = 'rotate(0deg)';
         });
@@ -654,6 +725,7 @@
       filterState.date = Array.from(document.querySelectorAll('.date-filter-checkbox:checked')).map(cb => cb.value);
       filterState.cluster = Array.from(document.querySelectorAll('.cluster-filter-checkbox:checked')).map(cb => cb.value);
       filterState.quality = Array.from(document.querySelectorAll('.quality-filter-checkbox:checked')).map(cb => cb.value);
+      filterState.status = Array.from(document.querySelectorAll('.status-filter-checkbox:checked')).map(cb => cb.value);
       
       // Update display
       updateFilterDisplay();
@@ -678,17 +750,22 @@
       // Update quality filter button text
       const qualityText = filterState.quality.length === 0 ? 'Quality (0 selected)' : `Quality (${filterState.quality.length} selected)`;
       document.getElementById('quality-filter-text').textContent = qualityText;
+      
+      // Update status filter button text
+      const statusText = filterState.status.length === 0 ? 'Status (0 selected)' : `Status (${filterState.status.length} selected)`;
+      document.getElementById('status-filter-text').textContent = statusText;
     }
     
     function clearFilters() {
       filterState = {
         date: [],
         cluster: [],
-        quality: []
+        quality: [],
+        status: []
       };
       
       // Uncheck all checkboxes
-      document.querySelectorAll('.date-filter-checkbox, .cluster-filter-checkbox, .quality-filter-checkbox').forEach(cb => {
+      document.querySelectorAll('.date-filter-checkbox, .cluster-filter-checkbox, .quality-filter-checkbox, .status-filter-checkbox').forEach(cb => {
         cb.checked = false;
       });
       
@@ -773,6 +850,28 @@
           if (!qualityMatches) return false;
         }
         
+        // Status filter - if any status filters are selected, title must match at least one
+        if (filterState.status.length > 0) {
+          let statusMatches = false;
+          
+          for (const statusFilter of filterState.status) {
+            switch (statusFilter) {
+              case 'used':
+                if (title.is_used) {
+                  statusMatches = true;
+                }
+                break;
+              case 'unused':
+                if (!title.is_used) {
+                  statusMatches = true;
+                }
+                break;
+            }
+          }
+          
+          if (!statusMatches) return false;
+        }
+        
         return true;
       });
     }
@@ -812,14 +911,157 @@
         activeFilters.push(`⭐ ${qualityNames}`);
       }
       
+      if (filterState.status.length > 0) {
+        const statusLabels = {
+          used: 'Used',
+          unused: 'Unused'
+        };
+        const statusNames = filterState.status.map(s => statusLabels[s]).join(', ');
+        activeFilters.push(`📝 ${statusNames}`);
+      }
+      
       const activeFiltersElement = document.getElementById('active-filters');
       if (activeFilters.length > 0) {
-        const totalSelected = filterState.date.length + filterState.cluster.length + filterState.quality.length;
+        const totalSelected = filterState.date.length + filterState.cluster.length + filterState.quality.length + filterState.status.length;
         activeFiltersElement.textContent = `(${totalSelected} filters active)`;
         activeFiltersElement.title = activeFilters.join(', ');
       } else {
         activeFiltersElement.textContent = '';
         activeFiltersElement.title = '';
+      }
+    }
+    
+    async function markFilteredTitlesAsUsed(isUsed) {
+      if (!titlesData || titlesData.total_titles === 0) return;
+      
+      // Get current content from textarea
+      const plainTextContent = document.getElementById('plain-text-content');
+      const textareaLines = plainTextContent.value.split('\n').filter(line => line.trim() !== '');
+      
+      if (textareaLines.length === 0) {
+        alert('No titles to process. The text area is empty.');
+        return;
+      }
+      
+      // Match textarea lines with original title data
+      const titlesToProcess = [];
+      textareaLines.forEach(line => {
+        const trimmedLine = line.trim();
+        // Find matching title from current filtered data
+        const matchingTitle = window.currentFilteredTitles?.find(title => 
+          title.content.trim() === trimmedLine
+        );
+        if (matchingTitle) {
+          titlesToProcess.push(matchingTitle);
+        } else {
+          console.warn('Could not find matching title for:', trimmedLine);
+        }
+      });
+      
+      if (titlesToProcess.length === 0) {
+        alert('No matching titles found. Make sure the titles in the text area match the original filtered titles.');
+        return;
+      }
+      
+      // Confirm action
+      const action = isUsed ? 'mark as used' : 'mark as unused';
+      const confirmation = confirm(`Are you sure you want to ${action} ${titlesToProcess.length} title(s) one by one?`);
+      if (!confirmation) return;
+      
+      // Disable buttons during processing
+      const markUsedBtn = document.getElementById('mark-used-btn');
+      const markUnusedBtn = document.getElementById('mark-unused-btn');
+      markUsedBtn.disabled = true;
+      markUnusedBtn.disabled = true;
+      
+      let successCount = 0;
+      let errorCount = 0;
+      const statusText = document.getElementById('status-text');
+      const originalStatus = statusText.textContent;
+      
+      try {
+        // Process each title individually
+        for (let i = 0; i < titlesToProcess.length; i++) {
+          const title = titlesToProcess[i];
+          
+          // Update button text with progress
+          const progress = `(${i + 1}/${titlesToProcess.length})`;
+          markUsedBtn.textContent = isUsed ? `⏳ Marking... ${progress}` : '✅ Mark as Used';
+          markUnusedBtn.textContent = !isUsed ? `⏳ Marking... ${progress}` : '↩️ Mark as Unused';
+          statusText.textContent = `Processing ${i + 1}/${titlesToProcess.length}: "${title.content.substring(0, 50)}..."`;
+          
+          try {
+            // Make individual API call
+            const response = await fetch('/api/generated-content/mark-used', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                projectId: parseInt(projectId),
+                titleIds: [title.id],
+                isUsed: isUsed
+              })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Failed to update title: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log(`Title ${i + 1} marked:`, result);
+            
+            // Update local data immediately
+            Object.entries(titlesData.by_cluster).forEach(([clusterName, clusterData]) => {
+              clusterData.titles.forEach(localTitle => {
+                if (localTitle.id === title.id) {
+                  localTitle.is_used = isUsed;
+                }
+              });
+            });
+            
+            // Update the content array as well
+            titlesData.content.forEach(localTitle => {
+              if (localTitle.id === title.id) {
+                localTitle.is_used = isUsed;
+              }
+            });
+            
+            successCount++;
+            
+            // Small delay between requests to avoid overwhelming the server
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+          } catch (error) {
+            console.error(`Error marking title ${i + 1}:`, error);
+            errorCount++;
+          }
+        }
+        
+        // Final status update
+        if (errorCount === 0) {
+          statusText.textContent = `✅ Successfully marked ${successCount} title(s) as ${isUsed ? 'used' : 'unused'}`;
+        } else {
+          statusText.textContent = `⚠️ Marked ${successCount} title(s), ${errorCount} failed`;
+        }
+        
+        // Re-render the current view to reflect changes
+        renderCurrentView();
+        
+      } catch (error) {
+        console.error('Error in batch marking:', error);
+        statusText.textContent = 'Error processing titles: ' + error.message;
+      } finally {
+        // Re-enable buttons
+        markUsedBtn.disabled = false;
+        markUnusedBtn.disabled = false;
+        markUsedBtn.textContent = '✅ Mark as Used';
+        markUnusedBtn.textContent = '↩️ Mark as Unused';
+        
+        // Reset status after 5 seconds
+        setTimeout(() => {
+          statusText.textContent = originalStatus;
+        }, 5000);
       }
     }
     

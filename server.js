@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 const path = require('path');
 const Database = require('better-sqlite3');
 const DB_PATH = path.join(__dirname, 'data', 'keywords-cluster.db');
-const db = new Database(DB_PATH, { readonly: true });
+const db = new Database(DB_PATH);
 
 // GET /api/dashboard - List all projects and stats
 app.get('/api/dashboard', (req, res) => {
@@ -214,6 +214,7 @@ app.get('/api/generated-content/:projectId', (req, res) => {
         character_count: item.character_count,
         quality_score: item.quality_score,
         is_approved: item.is_approved,
+        is_used: item.is_used,
         created_at: item.created_at,
         related_keyword: item.related_keyword,
         search_volume: item.search_volume,
@@ -229,6 +230,38 @@ app.get('/api/generated-content/:projectId', (req, res) => {
     });
   } catch (err) {
     console.error('Error in /api/generated-content:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/generated-content/mark-used - Mark titles as used/unused
+app.put('/api/generated-content/mark-used', express.json(), (req, res) => {
+  try {
+    const { projectId, titleIds, isUsed = true } = req.body;
+    
+    if (!projectId || !Array.isArray(titleIds) || titleIds.length === 0) {
+      return res.status(400).json({ error: 'Project ID and title IDs array are required' });
+    }
+    
+    console.log('Marking titles as used:', { projectId, titleIds, isUsed });
+    
+    // Create placeholders for the IN clause
+    const placeholders = titleIds.map(() => '?').join(',');
+    
+    // Update the titles
+    const result = db.prepare(`
+      UPDATE generated_content 
+      SET is_used = ?
+      WHERE project_id = ? AND id IN (${placeholders}) AND content_type = 'title'
+    `).run(isUsed ? 1 : 0, projectId, ...titleIds);
+    
+    res.json({ 
+      success: true, 
+      updated_count: result.changes,
+      is_used: isUsed
+    });
+  } catch (err) {
+    console.error('Error in /api/generated-content/mark-used:', err);
     res.status(500).json({ error: err.message });
   }
 });
