@@ -1,5 +1,6 @@
 const { ProjectTypePrompts } = require('../prompts/project-type');
 const { DatabasePrompts } = require('../prompts/database-selection');
+const { BatchProcessingPrompts } = require('../prompts/batch-processing');
 const { KeywordService } = require('../../src/services/keyword-service');
 const { Settings } = require('../config/settings');
 const { Output } = require('../utils/output');
@@ -87,6 +88,13 @@ class CreateCommand {
         return;
       }
 
+      // Get batch processing configuration
+      const batchConfig = await BatchProcessingPrompts.getProcessingConfiguration();
+      if (!batchConfig) {
+        Output.showCancellation();
+        return;
+      }
+
       // Helper function to normalize URL
       const normalizeUrl = (url) => {
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -106,25 +114,51 @@ class CreateCommand {
         method: projectDetails.method,
         target: projectDetails.method === 'URL' ? normalizeUrl(projectDetails.target) : projectDetails.target,
         database: dbConfig.database,
-        limit: dbConfig.limit
+        limit: dbConfig.limit,
+        batchProcessing: batchConfig
       };
 
       Output.showProcessingHeader(projectDetails.target);
 
       // Process keywords through complete pipeline
-      Output.showProgress('Processing keywords through complete pipeline...');
-      console.log('  → Fetching SEMrush data');
-      console.log('  → Cleaning and deduplicating keywords');
-      console.log('  → Performing clustering analysis');
-      console.log('  → Calculating priority scores');
-      console.log('  → Saving processed results');
+      if (batchConfig.enabled) {
+        Output.showProgress(`Processing keywords with ${batchConfig.mode} batch processing...`);
+        if (batchConfig.mode === 'fast') {
+          console.log(`  → Using fast mode (${Math.round(batchConfig.fastSamplePercentage * 100)}% sample)`);
+          console.log('  → Target: 5-minute quick results for immediate insights');
+        }
+        console.log(`  → Batch size: ${batchConfig.batchSize} keywords per batch`);
+        console.log('  → Fetching SEMrush data');
+        console.log('  → Batch cleaning and deduplicating keywords');
+        console.log('  → Performing optimized clustering analysis');
+        console.log('  → Calculating priority scores with checkpoints');
+        console.log('  → Saving processed results with resume capability');
+      } else {
+        Output.showProgress('Processing keywords through standard pipeline...');
+        console.log('  → Fetching SEMrush data');
+        console.log('  → Cleaning and deduplicating keywords');
+        console.log('  → Performing clustering analysis');
+        console.log('  → Calculating priority scores');
+        console.log('  → Saving processed results');
+      }
       
       const result = await this.keywordService.processKeywordRequest(params);
       
       // Show results
       Output.showSuccess(`Project created successfully!`);
       Output.showSuccess(`SEMrush data saved: ${result.filePath}`);
-      Output.showSuccess(`Pipeline processing completed successfully!`);
+      
+      if (result.batchProcessing) {
+        Output.showSuccess(`Batch processing completed successfully!`);
+        if (result.batchProcessing.mode === 'fast') {
+          console.log(`  ⚡ Fast mode: Processed ${result.batchProcessing.keywordsSampled} keywords in ${Math.round(result.batchProcessing.processingTime / 1000)} seconds`);
+          console.log('  💡 Run "Recluster" command later for full dataset analysis');
+        } else {
+          console.log(`  📊 Full batch processing: ${result.batchProcessing.totalBatches} batches completed`);
+        }
+      } else {
+        Output.showSuccess(`Standard pipeline processing completed successfully!`);
+      }
       
       // Display processing results
       if (result.clusters && result.clusters.length > 0) {
@@ -151,7 +185,7 @@ class CreateCommand {
       Output.showInfo('\n🎯 Auto-generating comprehensive FAQ titles for all clusters...');
       await this.generateComprehensiveFAQTitles(result.project, result.clusters, expandedKeywordsData);
       
-      Output.showSummary({
+      const summaryData = {
         'Method': result.method,
         'Target': result.target,
         'Database': result.database,
@@ -159,11 +193,22 @@ class CreateCommand {
         'Keywords processed': result.processedKeywordCount,
         'Clusters found': result.clusterCount,
         'Duplicate groups': result.duplicateGroupCount,
-        'Pipeline status': '✅ Completed successfully',
         'Keyword Expansion': `✅ ${expandedKeywordsData?.totalExpandedKeywords || 0} new keywords discovered`,
         'FAQ Generation': '✅ Completed for all clusters',
         'Database project': result.project.name
-      });
+      };
+
+      if (result.batchProcessing) {
+        summaryData['Processing mode'] = `✅ ${result.batchProcessing.mode} batch processing`;
+        summaryData['Processing time'] = `${Math.round(result.batchProcessing.processingTime / 1000)} seconds`;
+        if (result.batchProcessing.mode === 'fast') {
+          summaryData['Sample processed'] = `${result.batchProcessing.keywordsSampled} keywords (${Math.round(result.batchProcessing.keywordsSampled / result.keywordCount * 100)}%)`;
+        }
+      } else {
+        summaryData['Pipeline status'] = '✅ Standard processing completed';
+      }
+
+      Output.showSummary(summaryData);
 
     } catch (error) {
       Output.showError(error.message);

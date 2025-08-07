@@ -33,7 +33,12 @@
       "Bash(cp:*)",
       "Bash(chmod:*)",
       "Bash(git checkout:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "mcp__puppeteer__puppeteer_click",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "mcp__puppeteer__puppeteer_evaluate",
+      "mcp__puppeteer__puppeteer_navigate",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

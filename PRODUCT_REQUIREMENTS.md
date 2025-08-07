@@ -51,10 +51,10 @@ The current system is a Node.js CLI application with the following characteristi
 1. **SEMrush Data Acquisition**: Fetch keyword data via API
 2. **Data Cleaning**: Normalize and clean keyword data
 3. **Deduplication**: Remove duplicate keywords
-4. **Keyword Clustering**: Semantic grouping using K-means
-5. **Prioritization**: Score and rank keywords
-6. **Title Generation**: AI-powered content title creation with cost optimization
-7. **Summary Generation**: Processing statistics and metrics
+4. **Batch Clustering**: Semantic grouping using optimized K-means with batch processing
+5. **Prioritization**: Score and rank keywords per batch
+6. **Progressive Title Generation**: AI-powered content title creation with cost optimization per batch
+7. **Summary Generation**: Processing statistics and metrics with batch tracking
 
 **Title Generation Cost Optimization:**
 - Generate FAQ titles only for limited number of clusters to control AI API costs
@@ -62,8 +62,9 @@ The current system is a Node.js CLI application with the following characteristi
 - Smart cluster selection based on keyword volume and priority scores
 
 #### 2.2.2 Core Operations
-- **CREATE**: Initialize new keyword analysis projects with full automation (domain check → SEMrush download → pipeline → FAQ generation)
-- **RESCRAPE**: Update existing projects with fresh data and full automation (data check/update → pipeline → FAQ generation)
+- **CREATE**: Initialize new keyword analysis projects with batch automation (domain check → SEMrush download → batch pipeline → progressive FAQ generation)
+- **RESCRAPE**: Update existing projects with fresh data and batch automation (data check/update → batch pipeline → progressive FAQ generation)
+- **BATCH-RESUME**: Resume interrupted clustering operations from last completed batch
 - **ANALYZE**: Cross-project data analysis and reporting
 - **WRITEMORE**: Generate additional content from existing data (deprecated in favor of integrated FAQ generation)
 
@@ -95,13 +96,15 @@ As a user, I want to clear the entire database so that I can start fresh when ne
 
 #### 3.3.2 Data Processing
 ```
-As a user, I want to create new projects with automatic pipeline processing so that I get complete analysis without manual steps
-As a user, I want to rescrape existing projects with automatic pipeline processing so that I can update data seamlessly
+As a user, I want to create new projects with batch processing so that I get initial results quickly (5 minutes vs 1 hour)
+As a user, I want to resume interrupted clustering operations so that I can pause and continue large processing jobs
+As a user, I want to rescrape existing projects with batch processing so that I can update data incrementally
 As a user, I want domain/URL validation to prevent duplicate projects so that I maintain clean data
-As a user, I want automatic FAQ title generation with cost optimization so that I get content without overspending
+As a user, I want progressive FAQ title generation so that I get content as batches complete
 As a user, I want smart data updates during rescrape so that historical data is preserved
 As a user, I want to compare data between different collection dates so that I can identify changes
 As a user, I want to analyze multiple projects together so that I can identify trends
+As a user, I want configurable batch sizes so that I can optimize performance for my hardware
 ```
 
 #### 3.3.3 Interface Options
@@ -139,15 +142,17 @@ As a user, I want to export data in multiple formats so that I can integrate wit
 ### 4.2 Data Processing Engine
 
 #### 4.2.1 Core Processing Pipeline
-- **Modular Architecture**: Maintain existing 8-stage pipeline structure
-- **Automated Processing**: Full pipeline automation for create and rescrape operations
-- **User-initiated Operations**: Two main workflows (create, rescrape) with automatic pipeline execution
-- **Date-based Runs**: Each processing run tagged with collection date
-- **Progress Tracking**: Real-time progress updates for all operations
-- **Error Handling**: Comprehensive error recovery and retry mechanisms
-- **Processing History**: Complete audit trail of all processing steps with date tracking
+- **Batch Architecture**: Transform 8-stage pipeline to support batch processing with persistence
+- **Incremental Processing**: Process datasets in configurable batches (default: 500 keywords)
+- **Resume Capability**: Save and restore clustering state between sessions
+- **Progressive Results**: Generate titles immediately after each batch completion
+- **User-initiated Operations**: Three main workflows (create, rescrape, batch-resume) with batch pipeline execution
+- **Date-based Runs**: Each processing run tagged with collection date and batch tracking
+- **Batch Progress Tracking**: Real-time progress updates for batch operations with ETA
+- **Error Handling**: Comprehensive error recovery with batch checkpoint restoration
+- **Processing History**: Complete audit trail of all processing steps with batch tracking
 - **Domain/URL Validation**: Check for existing projects before creation
-- **Data Update Logic**: Smart update vs insert logic for rescrape operations
+- **Data Update Logic**: Smart update vs insert logic for rescrape operations with batch awareness
 
 #### 4.2.2 Data Storage & Management
 - **SQLite Database**: Local SQLite database for simple data storage

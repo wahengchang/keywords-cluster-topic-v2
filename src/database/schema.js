@@ -242,6 +242,61 @@ class DatabaseSchema {
         FOREIGN KEY (run_id) REFERENCES processing_runs (id)
       )
     `);
+
+    // Batch processing runs table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS batch_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        run_id INTEGER NOT NULL,
+        batch_mode TEXT DEFAULT 'fast' CHECK(batch_mode IN ('fast', 'full', 'custom')),
+        total_keywords INTEGER DEFAULT 0,
+        processed_keywords INTEGER DEFAULT 0,
+        current_batch INTEGER DEFAULT 1,
+        total_batches INTEGER DEFAULT 1,
+        batch_size INTEGER DEFAULT 100,
+        fast_sample_percentage REAL DEFAULT 0.1,
+        status TEXT DEFAULT 'initializing' CHECK(status IN ('initializing', 'running', 'paused', 'completed', 'failed', 'cancelled')),
+        current_stage TEXT,
+        stage_progress INTEGER DEFAULT 0,
+        total_stages INTEGER DEFAULT 5,
+        can_resume BOOLEAN DEFAULT TRUE,
+        resume_data TEXT,
+        configuration TEXT,
+        started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        paused_at DATETIME,
+        resumed_at DATETIME,
+        completed_at DATETIME,
+        estimated_completion DATETIME,
+        processing_time_ms INTEGER DEFAULT 0,
+        error_message TEXT,
+        performance_metrics TEXT,
+        FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+        FOREIGN KEY (run_id) REFERENCES processing_runs (id) ON DELETE CASCADE
+      )
+    `);
+
+    // Batch processing checkpoints table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS batch_checkpoints (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        batch_run_id INTEGER NOT NULL,
+        checkpoint_type TEXT NOT NULL CHECK(checkpoint_type IN ('stage', 'batch', 'error_recovery')),
+        stage_name TEXT NOT NULL,
+        batch_number INTEGER DEFAULT 1,
+        keywords_processed INTEGER DEFAULT 0,
+        cluster_state TEXT,
+        processing_state TEXT,
+        intermediate_results TEXT,
+        performance_data TEXT,
+        memory_usage INTEGER,
+        validation_hash TEXT,
+        is_recoverable BOOLEAN DEFAULT TRUE,
+        recovery_instructions TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (batch_run_id) REFERENCES batch_runs (id) ON DELETE CASCADE
+      )
+    `);
   }
 
   static createIndexes(db) {
@@ -268,7 +323,12 @@ class DatabaseSchema {
       'CREATE INDEX IF NOT EXISTS idx_content_run ON generated_content (run_id)',
       'CREATE INDEX IF NOT EXISTS idx_logs_run ON processing_logs (run_id)',
       'CREATE INDEX IF NOT EXISTS idx_api_usage_run ON api_usage (run_id)',
-      'CREATE INDEX IF NOT EXISTS idx_priority_run ON priority_analysis (run_id)'
+      'CREATE INDEX IF NOT EXISTS idx_priority_run ON priority_analysis (run_id)',
+      'CREATE INDEX IF NOT EXISTS idx_batch_runs_project ON batch_runs (project_id)',
+      'CREATE INDEX IF NOT EXISTS idx_batch_runs_status ON batch_runs (status)',
+      'CREATE INDEX IF NOT EXISTS idx_batch_runs_run ON batch_runs (run_id)',
+      'CREATE INDEX IF NOT EXISTS idx_batch_checkpoints_run ON batch_checkpoints (batch_run_id)',
+      'CREATE INDEX IF NOT EXISTS idx_batch_checkpoints_type ON batch_checkpoints (checkpoint_type, stage_name)'
     ];
 
     indexes.forEach(indexSql => {

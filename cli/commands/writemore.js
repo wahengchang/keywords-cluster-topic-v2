@@ -153,31 +153,141 @@ class WriteMoreCommand {
   async selectClusters(clusters) {
     Output.showInfo('\n📊 Available Clusters:');
     
+    // Sort clusters by existing content count (higher title count first), then by keyword count
+    const sortedClusters = clusters.sort((a, b) => {
+      const aContentCount = a.existing_content_count || 0;
+      const bContentCount = b.existing_content_count || 0;
+      const aKeywordCount = a.keyword_count || 0;
+      const bKeywordCount = b.keyword_count || 0;
+      
+      // First sort by existing content count (descending)
+      if (bContentCount !== aContentCount) {
+        return bContentCount - aContentCount;
+      }
+      // Then by keyword count (descending)
+      return bKeywordCount - aKeywordCount;
+    });
+    
     // Display clusters with stats
-    clusters.forEach((cluster, index) => {
-      Output.showInfo(`${index + 1}. ${cluster.cluster_name || `Cluster ${cluster.id}`}`);
-      Output.showInfo(`   Keywords: ${cluster.keyword_count || 0} | Existing FAQ titles: ${cluster.existing_content_count || 0}`);
+    sortedClusters.forEach((cluster, index) => {
+      const titleCount = cluster.existing_content_count || 0;
+      const keywordCount = cluster.keyword_count || 0;
+      const titleIndicator = titleCount > 0 ? '📝' : '📭';
+      
+      Output.showInfo(`${index + 1}. ${titleIndicator} ${cluster.cluster_name || `Cluster ${cluster.id}`}`);
+      Output.showInfo(`   Keywords: ${keywordCount} | Existing FAQ titles: ${titleCount}`);
       if (cluster.cluster_description) {
         Output.showInfo(`   Theme: ${cluster.cluster_description}`);
       }
       Output.showInfo('');
     });
 
-    const choices = clusters.map((cluster, index) => ({
-      title: `${cluster.cluster_name || `Cluster ${cluster.id}`} (${cluster.keyword_count || 0} keywords, ${cluster.existing_content_count || 0} existing titles)`,
-      value: cluster,
-      selected: false
-    }));
-
-    const response = await prompts({
-      type: 'multiselect',
-      name: 'clusters',
-      message: 'Select clusters to generate FAQ titles for:',
-      choices: choices,
-      hint: '- Space to select. Return to submit'
+    // Ask user for selection type first
+    const selectionType = await prompts({
+      type: 'select',
+      name: 'type',
+      message: 'How would you like to select clusters?',
+      choices: [
+        { title: 'Select All Clusters', value: 'all' },
+        { title: 'Select Specific Clusters', value: 'specific' },
+        { title: 'Select Clusters with No Existing Titles', value: 'empty' },
+        { title: 'Select [number] Clusters with No Existing Titles', value: 'empty_limited' },
+        { title: 'Select Top Clusters by Title Count', value: 'top' }
+      ]
     });
 
-    return response.clusters;
+    if (!selectionType.type) {
+      return null; // User cancelled
+    }
+
+    let selectedClusters = [];
+
+    switch (selectionType.type) {
+      case 'all':
+        selectedClusters = sortedClusters;
+        Output.showSuccess(`✅ Selected all ${sortedClusters.length} clusters`);
+        break;
+
+      case 'empty':
+        selectedClusters = sortedClusters.filter(cluster => (cluster.existing_content_count || 0) === 0);
+        Output.showSuccess(`✅ Selected ${selectedClusters.length} clusters with no existing titles`);
+        break;
+
+      case 'empty_limited':
+        const emptyClusters = sortedClusters.filter(cluster => (cluster.existing_content_count || 0) === 0);
+        const emptyCount = await prompts({
+          type: 'number',
+          name: 'count',
+          message: 'How many clusters with no existing titles to select?',
+          initial: Math.min(25, emptyClusters.length),
+          min: 1,
+          max: emptyClusters.length,
+          validate: value => value > 0 && value <= emptyClusters.length ? true : `Please enter a number between 1 and ${emptyClusters.length} (available clusters with no titles)`
+        });
+        
+        if (emptyCount.count === undefined) {
+          return null; // User cancelled
+        }
+        
+        selectedClusters = emptyClusters.slice(0, emptyCount.count);
+        Output.showSuccess(`✅ Selected ${emptyCount.count} clusters with no existing titles`);
+        break;
+
+      case 'top':
+        const topCount = await prompts({
+          type: 'number',
+          name: 'count',
+          message: 'How many top clusters to select?',
+          initial: Math.min(5, sortedClusters.length),
+          min: 1,
+          max: sortedClusters.length,
+          validate: value => value > 0 && value <= sortedClusters.length ? true : `Please enter a number between 1 and ${sortedClusters.length}`
+        });
+        
+        if (topCount.count === undefined) {
+          return null; // User cancelled
+        }
+        
+        selectedClusters = sortedClusters.slice(0, topCount.count);
+        Output.showSuccess(`✅ Selected top ${topCount.count} clusters by title count`);
+        break;
+
+      case 'specific':
+      default:
+        const choices = sortedClusters.map((cluster, index) => {
+          const titleCount = cluster.existing_content_count || 0;
+          const keywordCount = cluster.keyword_count || 0;
+          const titleIndicator = titleCount > 0 ? '📝' : '📭';
+          
+          return {
+            title: `${titleIndicator} ${cluster.cluster_name || `Cluster ${cluster.id}`} (${keywordCount} keywords, ${titleCount} existing titles)`,
+            value: cluster,
+            selected: false
+          };
+        });
+
+        const response = await prompts({
+          type: 'multiselect',
+          name: 'clusters',
+          message: 'Select clusters to generate FAQ titles for:',
+          choices: choices,
+          hint: '- Space to select. Return to submit'
+        });
+
+        selectedClusters = response.clusters || [];
+        break;
+    }
+
+    if (selectedClusters && selectedClusters.length > 0) {
+      Output.showInfo('\n📋 Selected Clusters:');
+      selectedClusters.forEach((cluster, index) => {
+        const titleCount = cluster.existing_content_count || 0;
+        const keywordCount = cluster.keyword_count || 0;
+        Output.showInfo(`${index + 1}. ${cluster.cluster_name || `Cluster ${cluster.id}`} (${keywordCount} keywords, ${titleCount} titles)`);
+      });
+    }
+
+    return selectedClusters;
   }
 
   async configureGenerationSettings() {
