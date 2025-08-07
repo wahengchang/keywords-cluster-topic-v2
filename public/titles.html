@@ -467,7 +467,10 @@
       const container = document.getElementById('clusters-container');
       container.innerHTML = '';
       
-      Object.entries(titlesData.by_cluster).forEach(([clusterName, clusterData]) => {
+      // Sort clusters alphabetically for consistent ordering
+      const sortedClusters = Object.keys(titlesData.by_cluster).sort();
+      sortedClusters.forEach(clusterName => {
+        const clusterData = titlesData.by_cluster[clusterName];
         const clusterElement = createClusterSection(clusterName, clusterData);
         container.appendChild(clusterElement);
       });
@@ -478,8 +481,10 @@
       const allTitles = [];
       const filteredTitles = [];
       
-      // Collect all titles from all clusters
-      Object.entries(titlesData.by_cluster).forEach(([clusterName, clusterData]) => {
+      // Collect all titles from all clusters - sort clusters alphabetically for consistency
+      const sortedClusters = Object.keys(titlesData.by_cluster).sort();
+      sortedClusters.forEach(clusterName => {
+        const clusterData = titlesData.by_cluster[clusterName];
         clusterData.titles.forEach(title => {
           allTitles.push({
             id: title.id,
@@ -577,7 +582,8 @@
     function setupFilters() {
       // Populate cluster filter options
       const clusterOptions = document.getElementById('cluster-options');
-      const clusters = Object.keys(titlesData.by_cluster);
+      // Sort clusters alphabetically for consistent ordering
+      const clusters = Object.keys(titlesData.by_cluster).sort();
       
       clusters.forEach(clusterName => {
         const label = document.createElement('label');

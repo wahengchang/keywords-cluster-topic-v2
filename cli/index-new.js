@@ -2,6 +2,7 @@
 
 const { CreateCommand } = require('./commands/create');
 const { RescrapeCommand } = require('./commands/rescrape');
+const { ReclusterCommand } = require('./commands/recluster');
 const { DatabaseCommand } = require('./commands/database');
 const { WriteMoreCommand } = require('./commands/writemore');
 const { Output } = require('./utils/output');
@@ -18,6 +19,7 @@ async function main() {
     choices: [
       { title: 'Create New Project (Domain/Subfolder)', value: 'create' },
       { title: 'Rescrape Existing Project', value: 'rescrape' },
+      { title: 'Re-cluster Keywords (Adjust Clustering)', value: 'recluster' },
       { title: 'Database Management', value: 'database' },
       { title: 'Generate More Content', value: 'writemore' },
       { title: 'Cross-Project Analysis (Coming Soon)', value: 'analyze', disabled: true }
@@ -32,6 +34,10 @@ async function main() {
     case 'rescrape':
       const rescrapeCommand = new RescrapeCommand();
       await rescrapeCommand.execute();
+      break;
+    case 'recluster':
+      const reclusterCommand = new ReclusterCommand();
+      await reclusterCommand.execute();
       break;
     case 'database':
       const databaseCommand = new DatabaseCommand();
