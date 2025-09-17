@@ -330,6 +330,9 @@
     // Load project and titles data
     document.addEventListener('DOMContentLoaded', async () => {
       try {
+        console.log('DEBUG: Current URL:', window.location.href);
+        console.log('DEBUG: URL search params:', window.location.search);
+        console.log('DEBUG: Extracted project ID:', projectId);
         console.log('Loading titles for project:', projectId);
         
         // Load dashboard to get project info
@@ -349,14 +352,21 @@
         // Set up project link
         document.getElementById('project-link').href = `/project.html?id=${projectId}`;
         
-        // Load generated content
-        const titlesResponse = await fetch(`/api/generated-content/${projectId}`);
+        // Load generated content with cache-busting timestamp
+        const apiUrl = `/api/generated-content/${projectId}?_t=${Date.now()}`;
+        console.log('DEBUG: Making API request to:', apiUrl);
+        const titlesResponse = await fetch(apiUrl);
         if (!titlesResponse.ok) {
           throw new Error(`Failed to load titles: ${titlesResponse.status}`);
         }
         
         titlesData = await titlesResponse.json();
-        console.log('Titles data:', titlesData);
+        console.log('DEBUG: API response for project', projectId, ':', {
+          total_titles: titlesData.total_titles,
+          clusters_with_content: titlesData.clusters_with_content,
+          first_title: titlesData.content[0]?.content,
+          response_url: titlesResponse.url
+        });
         
         // Hide loading
         document.getElementById('loading').classList.add('hidden');

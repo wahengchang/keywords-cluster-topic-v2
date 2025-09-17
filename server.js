@@ -8,6 +8,16 @@ const Database = require('better-sqlite3');
 const DB_PATH = path.join(__dirname, 'data', 'keywords-cluster.db');
 const db = new Database(DB_PATH);
 
+// Add cache-busting headers for API routes
+app.use('/api', (req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  next();
+});
+
 // GET /api/dashboard - List all projects and stats
 app.get('/api/dashboard', (req, res) => {
   try {
@@ -45,20 +55,92 @@ app.get('/api/dashboard', (req, res) => {
   }
 });
 
-// GET /api/keywords/:projectId - List all keywords for a project with cluster information
-app.get('/api/keywords/:projectId', (req, res) => {
+// Helper function to get latest completed run for a project with keyword data
+function getLatestRun(projectId, db) {
+  // First try to get the latest run that has keywords data
+  const runWithKeywords = db.prepare(`
+    SELECT DISTINCT pr.id, pr.scrape_date, pr.status, pr.completed_at, pr.run_type
+    FROM processing_runs pr
+    INNER JOIN keywords k ON pr.id = k.run_id
+    WHERE pr.project_id = ? AND pr.status = 'completed'
+    ORDER BY pr.completed_at DESC, pr.id DESC
+    LIMIT 1
+  `).get(projectId);
+
+  if (runWithKeywords) {
+    return runWithKeywords;
+  }
+
+  // Fallback to latest run with raw keywords
+  const runWithRawKeywords = db.prepare(`
+    SELECT DISTINCT pr.id, pr.scrape_date, pr.status, pr.completed_at, pr.run_type
+    FROM processing_runs pr
+    INNER JOIN raw_keywords rk ON pr.id = rk.run_id
+    WHERE pr.project_id = ? AND pr.status = 'completed'
+    ORDER BY pr.completed_at DESC, pr.id DESC
+    LIMIT 1
+  `).get(projectId);
+
+  if (runWithRawKeywords) {
+    return runWithRawKeywords;
+  }
+
+  // Final fallback to any completed run
+  return db.prepare(`
+    SELECT id, scrape_date, status, completed_at, run_type
+    FROM processing_runs
+    WHERE project_id = ? AND status = 'completed'
+    ORDER BY completed_at DESC, id DESC
+    LIMIT 1
+  `).get(projectId);
+}
+
+// Keywords API handler function
+function handleKeywordsRequest(req, res) {
   try {
-    const { projectId } = req.params;
-    console.log('Loading keywords for project:', projectId);
-    
-    // Get keywords with cluster information
+    const { projectId, runId } = req.params;
+    console.log('Loading keywords for project:', projectId, 'run:', runId);
+
+    // Get target run (specified or latest)
+    let targetRun;
+    if (runId) {
+      targetRun = db.prepare(`
+        SELECT id, scrape_date, status, completed_at, run_type
+        FROM processing_runs
+        WHERE project_id = ? AND id = ? AND status = 'completed'
+      `).get(projectId, runId);
+
+      if (!targetRun) {
+        return res.status(404).json({
+          error: `Run ID ${runId} not found or not completed for project ${projectId}`
+        });
+      }
+    } else {
+      targetRun = getLatestRun(projectId, db);
+
+      if (!targetRun) {
+        return res.json({
+          keywords: [],
+          clusters: [],
+          total_keywords: 0,
+          total_clusters: 0,
+          meta: {
+            run_id: null,
+            run_date: null,
+            message: "No completed processing runs found for this project"
+          }
+        });
+      }
+    }
+
+    // Get keywords with cluster information for the specific run
     let keywords = [];
     let clusters = [];
-    
+
     try {
-      // Get processed keywords with cluster info
+      // Get processed keywords with cluster info for specific run
       keywords = db.prepare(`
-        SELECT 
+        SELECT
           k.*,
           kc.cluster_theme,
           kc.cluster_description,
@@ -68,16 +150,16 @@ app.get('/api/keywords/:projectId', (req, res) => {
           kc.avg_competition as cluster_avg_competition,
           kc.avg_cpc as cluster_avg_cpc
         FROM keywords k
-        LEFT JOIN keyword_clusters kc ON k.cluster_id = kc.id AND k.project_id = kc.project_id
-        WHERE k.project_id = ?
+        LEFT JOIN keyword_clusters kc ON k.cluster_id = kc.id AND k.project_id = kc.project_id AND k.run_id = kc.run_id
+        WHERE k.project_id = ? AND k.run_id = ?
         ORDER BY k.priority_score DESC, k.search_volume DESC
-      `).all(projectId);
+      `).all(projectId, targetRun.id);
       
       console.log('Keywords from "keywords" table with clusters:', keywords.length);
-      
-      // Get cluster summary information
+
+      // Get cluster summary information for the specific run
       clusters = db.prepare(`
-        SELECT 
+        SELECT
           kc.*,
           COUNT(k.id) as actual_keyword_count,
           SUM(k.search_volume) as actual_total_volume,
@@ -85,20 +167,20 @@ app.get('/api/keywords/:projectId', (req, res) => {
           AVG(k.cpc) as actual_avg_cpc,
           AVG(k.priority_score) as avg_priority_score
         FROM keyword_clusters kc
-        LEFT JOIN keywords k ON kc.id = k.cluster_id AND kc.project_id = k.project_id
-        WHERE kc.project_id = ?
+        LEFT JOIN keywords k ON kc.id = k.cluster_id AND kc.project_id = k.project_id AND k.run_id = kc.run_id
+        WHERE kc.project_id = ? AND kc.run_id = ?
         GROUP BY kc.id
         ORDER BY actual_total_volume DESC, actual_keyword_count DESC
-      `).all(projectId);
-      
+      `).all(projectId, targetRun.id);
+
       console.log('Clusters found:', clusters.length);
-      
+
     } catch (keywordsErr) {
       console.log('Error accessing keywords table, trying raw_keywords...', keywordsErr.message);
       try {
-        // Fallback to raw keywords if processed keywords aren't available
+        // Fallback to raw keywords for the specific run
         keywords = db.prepare(`
-          SELECT 
+          SELECT
             *,
             NULL as cluster_id,
             NULL as cluster_name,
@@ -106,10 +188,10 @@ app.get('/api/keywords/:projectId', (req, res) => {
             NULL as cluster_description,
             NULL as priority_score,
             NULL as priority_tier
-          FROM raw_keywords 
-          WHERE project_id = ?
+          FROM raw_keywords
+          WHERE project_id = ? AND run_id = ?
           ORDER BY search_volume DESC
-        `).all(projectId);
+        `).all(projectId, targetRun.id);
         console.log('Keywords from "raw_keywords" table:', keywords.length);
       } catch (rawErr) {
         console.log('Neither "keywords" nor "raw_keywords" table accessible:', rawErr.message);
@@ -133,26 +215,75 @@ app.get('/api/keywords/:projectId', (req, res) => {
       }
     }
     
-    res.json({ 
-      keywords, 
+    // Get total historical runs count
+    const totalRuns = db.prepare(`
+      SELECT COUNT(*) as count FROM processing_runs
+      WHERE project_id = ? AND status = 'completed'
+    `).get(projectId);
+
+    res.json({
+      keywords,
       clusters,
       total_keywords: keywords.length,
-      total_clusters: clusters.length
+      total_clusters: clusters.length,
+      meta: {
+        run_id: targetRun.id,
+        run_date: targetRun.scrape_date,
+        run_type: targetRun.run_type,
+        completed_at: targetRun.completed_at,
+        total_historical_runs: totalRuns.count
+      }
     });
   } catch (err) {
     console.error('Error in /api/keywords:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}
 
-// GET /api/clusters/:projectId - Get cluster information for a project
-app.get('/api/clusters/:projectId', (req, res) => {
+// GET /api/keywords/:projectId - List keywords for a project (latest run)
+app.get('/api/keywords/:projectId', handleKeywordsRequest);
+
+// GET /api/keywords/:projectId/:runId - List keywords for a project (specific run)
+app.get('/api/keywords/:projectId/:runId', handleKeywordsRequest);
+
+// Clusters API handler function
+function handleClustersRequest(req, res) {
   try {
-    const { projectId } = req.params;
-    console.log('Loading clusters for project:', projectId);
-    
+    const { projectId, runId } = req.params;
+    console.log('Loading clusters for project:', projectId, 'run:', runId);
+
+    // Get target run (specified or latest)
+    let targetRun;
+    if (runId) {
+      targetRun = db.prepare(`
+        SELECT id, scrape_date, status, completed_at, run_type
+        FROM processing_runs
+        WHERE project_id = ? AND id = ? AND status = 'completed'
+      `).get(projectId, runId);
+
+      if (!targetRun) {
+        return res.status(404).json({
+          error: `Run ID ${runId} not found or not completed for project ${projectId}`
+        });
+      }
+    } else {
+      targetRun = getLatestRun(projectId, db);
+
+      if (!targetRun) {
+        return res.json({
+          clusters: [],
+          total_clusters: 0,
+          meta: {
+            run_id: null,
+            run_date: null,
+            message: "No completed processing runs found for this project"
+          }
+        });
+      }
+    }
+
     const clusters = db.prepare(`
-      SELECT 
+      SELECT
         kc.*,
         COUNT(k.id) as keyword_count,
         SUM(k.search_volume) as total_search_volume,
@@ -161,27 +292,116 @@ app.get('/api/clusters/:projectId', (req, res) => {
         AVG(k.priority_score) as avg_priority_score,
         GROUP_CONCAT(k.keyword, ', ') as sample_keywords
       FROM keyword_clusters kc
-      LEFT JOIN keywords k ON kc.id = k.cluster_id AND kc.project_id = k.project_id
-      WHERE kc.project_id = ?
+      LEFT JOIN keywords k ON kc.id = k.cluster_id AND kc.project_id = k.project_id AND k.run_id = kc.run_id
+      WHERE kc.project_id = ? AND kc.run_id = ?
       GROUP BY kc.id
       ORDER BY total_search_volume DESC, keyword_count DESC
-    `).all(projectId);
-    
-    res.json({ clusters, total_clusters: clusters.length });
+    `).all(projectId, targetRun.id);
+
+    // Get total historical runs count
+    const totalRuns = db.prepare(`
+      SELECT COUNT(*) as count FROM processing_runs
+      WHERE project_id = ? AND status = 'completed'
+    `).get(projectId);
+
+    res.json({
+      clusters,
+      total_clusters: clusters.length,
+      meta: {
+        run_id: targetRun.id,
+        run_date: targetRun.scrape_date,
+        run_type: targetRun.run_type,
+        completed_at: targetRun.completed_at,
+        total_historical_runs: totalRuns.count
+      }
+    });
   } catch (err) {
     console.error('Error in /api/clusters:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}
 
-// GET /api/generated-content/:projectId - Get all generated FAQ titles for a project
-app.get('/api/generated-content/:projectId', (req, res) => {
+// GET /api/clusters/:projectId - Get cluster information for a project (latest run)
+app.get('/api/clusters/:projectId', handleClustersRequest);
+
+// GET /api/clusters/:projectId/:runId - Get cluster information for a project (specific run)
+app.get('/api/clusters/:projectId/:runId', handleClustersRequest);
+
+// Helper function to get latest completed run for a project with generated content
+function getLatestRunWithContent(projectId, db) {
+  // First try to get the latest run that has generated content
+  const runWithContent = db.prepare(`
+    SELECT DISTINCT pr.id, pr.scrape_date, pr.status, pr.completed_at, pr.run_type
+    FROM processing_runs pr
+    INNER JOIN generated_content gc ON pr.id = gc.run_id
+    WHERE pr.project_id = ? AND pr.status = 'completed' AND gc.content_type = 'title'
+    ORDER BY pr.completed_at DESC, pr.id DESC
+    LIMIT 1
+  `).get(projectId);
+
+  if (runWithContent) {
+    return runWithContent;
+  }
+
+  // Fallback to any run with generated content (any type)
+  const runWithAnyContent = db.prepare(`
+    SELECT DISTINCT pr.id, pr.scrape_date, pr.status, pr.completed_at, pr.run_type
+    FROM processing_runs pr
+    INNER JOIN generated_content gc ON pr.id = gc.run_id
+    WHERE pr.project_id = ? AND pr.status = 'completed'
+    ORDER BY pr.completed_at DESC, pr.id DESC
+    LIMIT 1
+  `).get(projectId);
+
+  if (runWithAnyContent) {
+    return runWithAnyContent;
+  }
+
+  // Final fallback to latest run with keywords (for consistency)
+  return getLatestRun(projectId, db);
+}
+
+// Generated content API handler function
+function handleGeneratedContentRequest(req, res) {
   try {
-    const { projectId } = req.params;
-    console.log('Loading generated content for project:', projectId);
-    
+    const { projectId, runId } = req.params;
+    console.log('Loading generated content for project:', projectId, 'run:', runId);
+
+    // Get target run (specified or latest)
+    let targetRun;
+    if (runId) {
+      targetRun = db.prepare(`
+        SELECT id, scrape_date, status, completed_at, run_type
+        FROM processing_runs
+        WHERE project_id = ? AND id = ? AND status = 'completed'
+      `).get(projectId, runId);
+
+      if (!targetRun) {
+        return res.status(404).json({
+          error: `Run ID ${runId} not found or not completed for project ${projectId}`
+        });
+      }
+    } else {
+      // Use the specific function for content-aware run selection
+      targetRun = getLatestRunWithContent(projectId, db);
+
+      if (!targetRun) {
+        return res.json({
+          content: [],
+          by_cluster: {},
+          total_titles: 0,
+          clusters_with_content: 0,
+          meta: {
+            run_id: null,
+            run_date: null,
+            message: "No completed processing runs found for this project"
+          }
+        });
+      }
+    }
+
     const content = db.prepare(`
-      SELECT 
+      SELECT
         gc.*,
         kc.cluster_name,
         kc.cluster_description,
@@ -189,11 +409,11 @@ app.get('/api/generated-content/:projectId', (req, res) => {
         k.search_volume,
         k.competition
       FROM generated_content gc
-      LEFT JOIN keyword_clusters kc ON gc.cluster_id = kc.id
-      LEFT JOIN keywords k ON gc.primary_keyword_id = k.id
-      WHERE gc.project_id = ? AND gc.content_type = 'title'
+      LEFT JOIN keyword_clusters kc ON gc.cluster_id = kc.id AND gc.run_id = kc.run_id
+      LEFT JOIN keywords k ON gc.primary_keyword_id = k.id AND gc.run_id = k.run_id
+      WHERE gc.project_id = ? AND gc.run_id = ? AND gc.content_type = 'title'
       ORDER BY gc.created_at DESC, kc.cluster_name
-    `).all(projectId);
+    `).all(projectId, targetRun.id);
     
     // Group by cluster for better organization
     const byCluster = {};
@@ -222,17 +442,36 @@ app.get('/api/generated-content/:projectId', (req, res) => {
       });
     });
     
-    res.json({ 
+    // Get total historical runs count
+    const totalRuns = db.prepare(`
+      SELECT COUNT(*) as count FROM processing_runs
+      WHERE project_id = ? AND status = 'completed'
+    `).get(projectId);
+
+    res.json({
       content: content,
       by_cluster: byCluster,
       total_titles: content.length,
-      clusters_with_content: Object.keys(byCluster).length
+      clusters_with_content: Object.keys(byCluster).length,
+      meta: {
+        run_id: targetRun.id,
+        run_date: targetRun.scrape_date,
+        run_type: targetRun.run_type,
+        completed_at: targetRun.completed_at,
+        total_historical_runs: totalRuns.count
+      }
     });
   } catch (err) {
     console.error('Error in /api/generated-content:', err);
     res.status(500).json({ error: err.message });
   }
-});
+}
+
+// GET /api/generated-content/:projectId - Get generated FAQ titles for a project (latest run)
+app.get('/api/generated-content/:projectId', handleGeneratedContentRequest);
+
+// GET /api/generated-content/:projectId/:runId - Get generated FAQ titles for a project (specific run)
+app.get('/api/generated-content/:projectId/:runId', handleGeneratedContentRequest);
 
 // PUT /api/generated-content/mark-used - Mark titles as used/unused
 app.put('/api/generated-content/mark-used', express.json(), (req, res) => {
